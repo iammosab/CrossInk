@@ -49,7 +49,7 @@
 
 ### Fixed
 
-- Wi-Fi connection screens no longer run a full-panel refresh for every scan and connection status change.
+- Network connections no longer trigger repeated full-panel flashes.
 - Book menu tab navigation, popup scrolling, customized Reading Stats hints, and short button presses after low-power mode now work reliably.
 - Sleep screens now honor the current orientation, avoid X4 transition flashes, fall back to a valid wallpaper when needed, and handle low-memory image decoding without rebooting.
 - Choosing Set Cover uses the selected image in place, and Home no longer repeatedly generates missing EPUB covers.
