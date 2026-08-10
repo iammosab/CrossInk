@@ -256,7 +256,13 @@ void FontSelectionActivity::renderPreviewPane(int top, int height, int fontId, c
   const int innerHeight = height - metrics_.previewPadding - labelReserved;
   const int maxLines = std::max(1, innerHeight / (lineH + 2));
 
-  const char* previewText = I18N.get(StrId::STR_FONT_PREVIEW_TEXT);
+  // Fonts covering Arabic get an Arabic pangram: the Latin pangram exercises
+  // none of their shaping and shows nothing of how books will actually look.
+  const auto fontIt = renderer.getFontMap().find(fontId);
+  const bool arabicPreview =
+      fontIt != renderer.getFontMap().end() && fontIt->second.hasCodepoint(0x0628 /* beh */);
+  const char* previewText =
+      I18N.get(arabicPreview ? StrId::STR_FONT_PREVIEW_TEXT_ARABIC : StrId::STR_FONT_PREVIEW_TEXT);
   if (auto* fcm = renderer.getFontCacheManager()) {
     char prewarmBuf[256];
     snprintf(prewarmBuf, sizeof(prewarmBuf), "%s %s", previewText, ELLIPSIS_UTF8);
@@ -269,7 +275,8 @@ void FontSelectionActivity::renderPreviewPane(int top, int height, int fontId, c
   const int textBottomLimit = top + height - labelReserved;
   for (const auto& line : lines) {
     if (y + lineH > textBottomLimit) break;
-    renderer.drawText(fontId, left, y, line.c_str());
+    const int x = arabicPreview ? left + width - renderer.getTextWidth(fontId, line.c_str()) : left;
+    renderer.drawText(fontId, x, y, line.c_str());
     y += lineH + 2;
   }
 }

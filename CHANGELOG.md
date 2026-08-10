@@ -4,6 +4,8 @@
 
 - Arabic reading support: new SD-card font families `NotoNaskhArabic` (book Naskh, regular/bold) and `Amiri` (classical Bulaq-tradition Naskh, all four styles), plus an `arabic` Unicode interval preset covering the base Arabic block, Arabic Supplement, Extended-A, and the presentation forms the built-in shaping engine produces. The firmware's BiDi and Arabic shaping engine was already present; this supplies the glyphs it needed.
 
+- The font selection preview now shows an Arabic pangram, right-aligned, when the previewed font covers Arabic, so Arabic fonts can actually be compared before selecting one.
+
 ### Fixed
 
 - Simulator builds work again: the simulator dependency now points to a fork carrying the `HalFile::allocationFailed()` API added to the firmware HAL in v1.5.0.
