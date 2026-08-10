@@ -7,6 +7,8 @@
 - The font selection preview now shows an Arabic pangram, right-aligned, when the previewed font covers Arabic, so Arabic fonts can actually be compared before selecting one.
 - The UI now mirrors for right-to-left languages (Arabic, Hebrew): headers, titles, and the back button anchor to the right with battery/date chrome on the left, list rows put labels on the right and values/toggles on the left, selection markers and submenu carets flip sides, and the touch back target moves with the button. The Lyra Home screen mirrors too: book cover on the right with right-aligned title, author, stats, and a progress bar filling from the right, and menu rows with icons on the right edge. Button-hint labels stay in physical button order.
 
+- Arabic on-screen keyboard: the standard 101-key arrangement with the hamza-alef variants (أ إ آ) on long-press, plus a language key that switches between the Arabic and Latin layouts. The same key now also enables the previously dormant Hebrew layout for Hebrew UI users.
+
 ### Fixed
 
 - Simulator builds work again: the simulator dependency now points to a fork carrying the `HalFile::allocationFailed()` API added to the firmware HAL in v1.5.0.

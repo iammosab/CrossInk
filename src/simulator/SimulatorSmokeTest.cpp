@@ -18,6 +18,7 @@
 #include "activities/reader/EpubReaderMenuActivity.h"
 #include "activities/reader/ReaderOptionsActivity.h"
 #include "activities/settings/FontSelectionActivity.h"
+#include "activities/util/KeyboardEntryActivity.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"
 #include "components/UiAppHelpers.h"
@@ -37,6 +38,7 @@ enum class SmokeStep : uint8_t {
   Settings,
   ReaderOptions,
   FontSelection,
+  KeyboardEntry,
   ReaderMenu,
   Sleep,
   Reader,
@@ -196,6 +198,11 @@ class SimulatorSmokeTest {
         break;
 
       case SmokeStep::FontSelection:
+        activityManager.replaceActivity(std::make_unique<KeyboardEntryActivity>(renderer, mappedInputManager));
+        queueStep("Keyboard Entry", SmokeStep::KeyboardEntry, 40);
+        break;
+
+      case SmokeStep::KeyboardEntry:
         activityManager.replaceActivity(
             std::make_unique<EpubReaderMenuActivity>(renderer, mappedInputManager, "Smoke Test", 1, 1, 0,
                                                      SETTINGS.orientation, false, false, false, false, false, false));

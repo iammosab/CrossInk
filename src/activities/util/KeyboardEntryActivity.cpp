@@ -119,8 +119,28 @@ fui::KeyboardLayoutId layoutForLanguage(const Language language) {
       return fui::KeyboardLayoutId::QwertzDe;
     case Language::ES:
       return fui::KeyboardLayoutId::SpanishEs;
+    case Language::AR:
+      return fui::KeyboardLayoutId::ArabicAr;
+    case Language::HE:
+      return fui::KeyboardLayoutId::HebrewIl;
     default:
       return fui::KeyboardLayoutId::QwertyEn;
+  }
+}
+
+// True for layouts in a non-Latin script. Their tables carry the lang-key
+// bottom row, and QWERTY must grow one too so the user can switch back.
+bool layoutHasOwnScript(const fui::KeyboardLayoutId id) {
+  switch (id) {
+    case fui::KeyboardLayoutId::CyrillicRu:
+    case fui::KeyboardLayoutId::CyrillicUk:
+    case fui::KeyboardLayoutId::CyrillicBe:
+    case fui::KeyboardLayoutId::CyrillicKk:
+    case fui::KeyboardLayoutId::HebrewIl:
+    case fui::KeyboardLayoutId::ArabicAr:
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -162,7 +182,8 @@ const fui::KeyboardLayout& KeyboardEntryActivity::currentLayout() const {
     if (urlPanel) return URL_SNIPPET_LAYOUT;
     return shifted ? URL_SHIFT_LAYOUT : URL_LAYOUT;
   }
-  return fui::builtinKeyboardLayout(layoutId, shifted, false, /*numberRow=*/true);
+  return fui::builtinKeyboardLayout(layoutId, shifted, false, /*numberRow=*/true,
+                                    /*langKey=*/layoutHasOwnScript(layoutForLanguage(I18N.getLanguage())));
 }
 
 const fui::KeyboardKey* KeyboardEntryActivity::selectedKey() const {
@@ -291,6 +312,18 @@ bool KeyboardEntryActivity::activateValue(const int16_t value, const bool longPr
       shifted = false;
       clampSelection();
       return true;
+    case fui::QWERTY_KEY_LANG: {
+      // Toggle between the UI language's native layout and Latin QWERTY.
+      // Only layouts whose tables carry the lang-key bottom row emit this.
+      delPressCount = 0;
+      hintVisible = false;
+      const fui::KeyboardLayoutId native = layoutForLanguage(I18N.getLanguage());
+      layoutId = layoutId == fui::KeyboardLayoutId::QwertyEn ? native : fui::KeyboardLayoutId::QwertyEn;
+      symbols = false;
+      shifted = false;
+      clampSelection();
+      return true;
+    }
     case fui::QWERTY_KEY_ENTER:
       if (text.length() < minLength) return true;
       onComplete(text);
@@ -965,6 +998,11 @@ void KeyboardEntryActivity::render(RenderLock&&) {
   // layer and the URL snippet panel both label it "abc" in the static tables.
   props.modeLabel =
       (symbols || (inputType == InputType::Url && urlPanel)) ? tr(STR_KEY_MODE_ABC) : tr(STR_KEY_MODE_SYMBOLS);
+  // The lang key shows where it leads: "EN" while on the native layout, the
+  // language code while on QWERTY. Short codes always fit the 2-unit key.
+  props.langLabel = layoutId == fui::KeyboardLayoutId::QwertyEn
+                        ? LANGUAGE_CODES[static_cast<uint8_t>(I18N.getLanguage())]
+                        : "EN";
   props.inputMask = static_cast<uint16_t>(fui::InputTouch | fui::InputLongPress);
   props.selectedIndex = cursorMode ? -1 : static_cast<int16_t>(selectedLogicalIndex());
   props.labelText.font = fui::GfxRendererTarget::FONT_BODY;
