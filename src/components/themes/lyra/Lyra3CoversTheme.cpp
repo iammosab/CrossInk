@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "I18n.h"
 #include "RecentBooksStore.h"
 #include "components/TouchRegistry.h"
 #include "components/UITheme.h"
@@ -28,6 +29,13 @@ void Lyra3CoversTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
   const int tileWidth = (rect.width - 2 * Lyra3CoversMetrics::values.contentSidePadding) / 3;
   const int tileY = rect.y;
   const bool hasContinueReading = !recentBooks.empty();
+  // RTL UI mirrors the shelf: the most recent book sits at the right edge and
+  // older ones advance leftward.
+  const bool rtl = I18N.isRtl();
+  const auto tileXFor = [&](const int i) {
+    return rtl ? rect.width - Lyra3CoversMetrics::values.contentSidePadding - tileWidth * (i + 1)
+               : Lyra3CoversMetrics::values.contentSidePadding + tileWidth * i;
+  };
 
   // Draw book card regardless, fill with message based on `hasContinueReading`
   // Draw cover image as background if available (inside the box)
@@ -38,7 +46,7 @@ void Lyra3CoversTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
            i < std::min(static_cast<int>(recentBooks.size()), Lyra3CoversMetrics::values.homeRecentBooksCount); i++) {
         std::string coverPath = recentBooks[i].coverBmpPath;
         bool hasCover = true;
-        int tileX = Lyra3CoversMetrics::values.contentSidePadding + tileWidth * i;
+        const int tileX = tileXFor(i);
         if (coverPath.empty()) {
           hasCover = false;
         } else {
@@ -89,7 +97,7 @@ void Lyra3CoversTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
          i++) {
       bool bookSelected = (selectorIndex == i);
 
-      int tileX = Lyra3CoversMetrics::values.contentSidePadding + tileWidth * i;
+      const int tileX = tileXFor(i);
       const int targetHeight =
           Lyra3CoversMetrics::values.homeCoverHeight + hPaddingInSelection + renderer.getLineHeight(SMALL_FONT_ID) * 3;
       TouchRegistry::getInstance().add(Rect{tileX, tileY, tileWidth, targetHeight}, i, TouchRegistry::Cover);
@@ -118,7 +126,10 @@ void Lyra3CoversTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
 
       int currentY = tileY + Lyra3CoversMetrics::values.homeCoverHeight + hPaddingInSelection + 5;
       for (const auto& line : titleLines) {
-        renderer.drawText(SMALL_FONT_ID, tileX + hPaddingInSelection, currentY, line.c_str(), true);
+        const int lineX = rtl ? tileX + tileWidth - hPaddingInSelection -
+                                    renderer.getTextWidth(SMALL_FONT_ID, line.c_str())
+                              : tileX + hPaddingInSelection;
+        renderer.drawText(SMALL_FONT_ID, lineX, currentY, line.c_str(), true);
         currentY += titleLineHeight;
       }
     }
