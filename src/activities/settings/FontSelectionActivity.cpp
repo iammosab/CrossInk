@@ -20,7 +20,6 @@
 namespace fui = freeink::ui;
 namespace {
 constexpr uint8_t INVALID_STORED_FONT_SIZE = 0xFF;
-constexpr const char* ELLIPSIS_UTF8 = "\xe2\x80\xa6";
 constexpr fui::ActionId ACTION_ROW = 1;
 
 uint8_t closestSizeIndex(const std::vector<uint8_t>& sizes, const uint8_t targetPointSize) {
@@ -263,26 +262,34 @@ void FontSelectionActivity::renderPreviewPane(int top, int height, int fontId, c
       fontIt != renderer.getFontMap().end() && fontIt->second.hasCodepoint(0x0628 /* beh */);
   const char* previewText =
       I18N.get(arabicPreview ? StrId::STR_FONT_PREVIEW_TEXT_ARABIC : StrId::STR_FONT_PREVIEW_TEXT);
-  // SD fonts stream glyphs from the card: make the text resident before
-  // measuring/drawing, including the shaped RTL presentation forms Arabic
-  // is actually drawn with. No-op for built-in fonts.
+  // SD fonts stream glyphs from the card: build the advance table (including
+  // shaped RTL tokens) before wrappedText/getTextWidth measure anything.
+  // No-op for built-in fonts.
   renderer.ensureSdCardFontReady(fontId, previewText, 0x01);
-  if (auto* fcm = renderer.getFontCacheManager()) {
-    char prewarmBuf[256];
-    snprintf(prewarmBuf, sizeof(prewarmBuf), "%s %s", previewText, ELLIPSIS_UTF8);
-    fcm->prewarmCache(fontId, prewarmBuf, 0x01);
-  }
 
   const auto lines = renderer.wrappedText(fontId, previewText, width, maxLines);
 
-  int y = top + metrics_.previewPadding;
   const int textBottomLimit = top + height - labelReserved;
-  for (const auto& line : lines) {
-    if (y + lineH > textBottomLimit) break;
-    const int x = arabicPreview ? left + width - renderer.getTextWidth(fontId, line.c_str()) : left;
-    renderer.drawText(fontId, x, y, line.c_str());
-    y += lineH + 2;
+  const auto drawLines = [&]() {
+    int y = top + metrics_.previewPadding;
+    for (const auto& line : lines) {
+      if (y + lineH > textBottomLimit) break;
+      const int x = arabicPreview ? left + width - renderer.getTextWidth(fontId, line.c_str()) : left;
+      renderer.drawText(fontId, x, y, line.c_str());
+      y += lineH + 2;
+    }
+  };
+
+  // Two-pass prewarm, same as the reader: the scan pass records the shaped
+  // visual codepoints drawText will actually emit (Arabic presentation forms
+  // differ from the logical text), so the SD font streams exactly those
+  // glyph bitmaps before the real draw.
+  if (auto* fcm = renderer.getFontCacheManager()) {
+    auto scope = fcm->createPrewarmScope();
+    drawLines();  // scan pass: records text, draws nothing
+    scope.endScanAndPrewarm();
   }
+  drawLines();
 }
 
 void FontSelectionActivity::listScreen(UiApp::ScreenType& screen, void* user) {
