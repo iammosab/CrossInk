@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixed
+
+- Simulator builds work again: the simulator dependency now points to a fork carrying the `HalFile::allocationFailed()` API added to the firmware HAL in v1.5.0.
+
 ## [v1.5.0] - 2026-08-08
 
 ### Added
