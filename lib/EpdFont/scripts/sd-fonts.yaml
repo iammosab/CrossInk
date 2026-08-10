@@ -170,6 +170,23 @@ families:
           url: "https://raw.githubusercontent.com/notofonts/NotoSerif-Italic/main/fonts/ttf/unhinted/instance_ttf/NotoSerif-BoldItalic.ttf",
         }
 
+  - name: NotoNaskhArabic
+    description: "Book Naskh for Arabic body text"
+    languages: "Arabic, Latin"
+    intervals: arabic
+    sizes: [8, 9, 10, 12, 14, 16, 18, 20]
+    styles:
+      regular:
+        {
+          url: "https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/NotoNaskhArabic%5Bwght%5D.ttf",
+          variable: { wght: 400 },
+        }
+      bold:
+        {
+          url: "https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/NotoNaskhArabic%5Bwght%5D.ttf",
+          variable: { wght: 700 },
+        }
+
   - name: SourceSerif4
     description: "Adobe transitional serif"
     languages: "Latin, Greek, Cyrillic"
