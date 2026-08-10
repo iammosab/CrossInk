@@ -893,6 +893,9 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
                                    &orientedMarginLeft);
   const auto statusBar = SETTINGS.statusBarSpec();
   const bool showStatusBarTextLane = statusBar.textLaneVisible(halClock.isAvailable());
+  // RTL UI mirrors the lane: page counter on the left, the bookmark/battery/
+  // time cluster on the right, progress bar filling from the right.
+  const bool rtl = I18N.isRtl();
 
   // Draw Progress Text
   const auto screenHeight = renderer.getScreenHeight();
@@ -926,10 +929,10 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
     }
 
     progressTextWidth = renderer.getTextWidth(SMALL_FONT_ID, progressStr);
-    renderer.drawText(
-        SMALL_FONT_ID,
-        renderer.getScreenWidth() - metrics.statusBarHorizontalMargin - orientedMarginRight - progressTextWidth, textY,
-        progressStr, foregroundBlack);
+    const int progressX =
+        rtl ? metrics.statusBarHorizontalMargin + orientedMarginLeft
+            : renderer.getScreenWidth() - metrics.statusBarHorizontalMargin - orientedMarginRight - progressTextWidth;
+    renderer.drawText(SMALL_FONT_ID, progressX, textY, progressStr, foregroundBlack);
   }
 
   // Draw Progress Bar
@@ -947,7 +950,8 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
       progress = (pageCount > 0) ? (static_cast<float>(currentPage) / pageCount) * 100 : 0;
     }
     const int barWidth = progressBarMaxWidth * progress / 100;
-    renderer.fillRect(orientedMarginLeft, progressBarY, barWidth, statusBar.progressBarHeightPx, foregroundBlack);
+    const int barX = rtl ? renderer.getScreenWidth() - orientedMarginRight - barWidth : orientedMarginLeft;
+    renderer.fillRect(barX, progressBarY, barWidth, statusBar.progressBarHeightPx, foregroundBlack);
   }
 
   // Bookmark icon: drawn at the far left of the status bar when the current page is bookmarked.
@@ -958,11 +962,12 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
   static constexpr int bmNotchDepth = 5;
   static constexpr int statusItemGap = 8;
   const int leftClusterX = metrics.statusBarHorizontalMargin + orientedMarginLeft + 1;
+  const int clusterRightX = renderer.getScreenWidth() - metrics.statusBarHorizontalMargin - orientedMarginRight - 1;
   const bool showBookmark = showStatusBarTextLane && isPageBookmarked;
   const int bmTotalWidth = showBookmark ? (bmIconW + bmIconGap) : 0;
 
   if (showBookmark) {
-    const int bmX = leftClusterX;
+    const int bmX = rtl ? clusterRightX - bmIconW : leftClusterX;
     // +5 compensates for the battery nub drawn above the rect origin by drawBatteryLeft,
     // which shifts the battery body's visual center below the mathematical rect center.
     const int bmY = textY + (metrics.batteryHeight - bmIconH) / 2 + 5;
@@ -976,8 +981,6 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
   const bool showBatteryPercentage = statusBar.showBatteryPercent;
   int leftClusterWidth = bmTotalWidth;
   if (statusBar.showBattery) {
-    GUI.drawBatteryLeft(renderer, Rect{leftClusterX + bmTotalWidth, textY, metrics.batteryWidth, metrics.batteryHeight},
-                        showBatteryPercentage, foregroundBlack);
     int batteryWidth = metrics.batteryWidth;
     if (showBatteryPercentage) {
       char batteryPercent[8];
@@ -985,15 +988,26 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
                static_cast<unsigned>(powerManager.getBatteryPercentage()));
       batteryWidth += batteryPercentSpacing + renderer.getTextWidth(SMALL_FONT_ID, batteryPercent);
     }
+    if (rtl) {
+      // Icon at the cluster's trailing (right) edge, percentage to its left.
+      const int iconX = clusterRightX - bmTotalWidth - metrics.batteryWidth;
+      GUI.drawBatteryRight(renderer, Rect{iconX, textY, metrics.batteryWidth, metrics.batteryHeight},
+                           showBatteryPercentage, foregroundBlack);
+    } else {
+      GUI.drawBatteryLeft(renderer,
+                          Rect{leftClusterX + bmTotalWidth, textY, metrics.batteryWidth, metrics.batteryHeight},
+                          showBatteryPercentage, foregroundBlack);
+    }
     leftClusterWidth += batteryWidth;
   }
 
   const bool hasTimeLeftLabel = timeLeftLabel != nullptr && timeLeftLabel[0] != '\0';
   if (hasTimeLeftLabel) {
     const bool hasLeftItem = leftClusterWidth > 0;
-    const int timeLeftX = leftClusterX + leftClusterWidth + (hasLeftItem ? statusItemGap : 0);
-    renderer.drawText(SMALL_FONT_ID, timeLeftX, textY, timeLeftLabel, foregroundBlack);
     const int timeLeftWidth = renderer.getTextWidth(SMALL_FONT_ID, timeLeftLabel);
+    const int timeLeftX = rtl ? clusterRightX - leftClusterWidth - (hasLeftItem ? statusItemGap : 0) - timeLeftWidth
+                              : leftClusterX + leftClusterWidth + (hasLeftItem ? statusItemGap : 0);
+    renderer.drawText(SMALL_FONT_ID, timeLeftX, textY, timeLeftLabel, foregroundBlack);
     leftClusterWidth += (hasLeftItem ? statusItemGap : 0) + timeLeftWidth;
   }
 
@@ -1005,8 +1019,9 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
     const int rendererableScreenWidth =
         renderer.getScreenWidth() - (metrics.statusBarHorizontalMargin * 2) - orientedMarginLeft - orientedMarginRight;
 
-    const int titleMarginLeft = leftClusterWidth + 30;
-    const int titleMarginRight = progressTextWidth + 30;
+    // The cluster and counter swap sides under RTL; the margins follow them.
+    const int titleMarginLeft = (rtl ? progressTextWidth : leftClusterWidth) + 30;
+    const int titleMarginRight = (rtl ? leftClusterWidth : progressTextWidth) + 30;
 
     // Attempt to center title on the screen, but if title is too wide then later we will center it within the
     // available space.
