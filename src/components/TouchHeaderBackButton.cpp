@@ -4,12 +4,14 @@
 
 #include <algorithm>
 
+#include "I18n.h"
 #include "UIThemeTokens.h"
 #include "components/CompactHeader.h"
 #include "components/HeaderDate.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 #include "components/icons/touchHeaderIcons.h"
+#include "components/icons/touchHeaderIconsRtl.h"
 #include "fontIds.h"
 
 namespace fui = freeink::ui;
@@ -35,16 +37,22 @@ Layout layout(const Rect& header) {
   // Center the action lane vertically so taller theme headers split their
   // spare space above and below the back button/title instead of placing all
   // of it above the title.
-  const int actionX = header.x;
+  // RTL UI languages mirror the whole lane: back button (and its touch
+  // target) on the right, title flowing leftward from it.
+  const bool rtl = I18N.isRtl();
+  const int actionX = rtl ? header.x + header.width - actionWidth : header.x;
   const int actionY = header.y + (header.height - actionHeight) / 2;
   const int touchWidth = std::min(touchSize, header.width);
   const int touchHeight = touchSize;
-  const int touchX = std::max(header.x, actionX + (actionWidth - touchWidth) / 2);
+  const int touchX = std::clamp(actionX + (actionWidth - touchWidth) / 2, header.x,
+                                std::max(header.x, header.x + header.width - touchWidth));
   // The common 45px header is shorter than the minimum touch target. Let the
   // hit box extend above and below the visual band instead of shrinking it.
   const int touchY = std::max(0, actionY + (actionHeight - touchHeight) / 2);
-  return {Rect{actionX, actionY, actionWidth, actionHeight}, Rect{touchX, touchY, touchWidth, touchHeight},
-          actionX + actionWidth + titleGap};
+  // titleX is the title area's near edge: right of the button in LTR, the
+  // header's left edge in RTL (draw() anchors the text to the mirrored side).
+  const int titleX = rtl ? header.x : actionX + actionWidth + titleGap;
+  return {Rect{actionX, actionY, actionWidth, actionHeight}, Rect{touchX, touchY, touchWidth, touchHeight}, titleX};
 }
 
 Rect standardHeaderRect(const GfxRenderer& renderer) {
@@ -92,19 +100,24 @@ void draw(GfxRenderer& renderer, fui::GfxRendererTarget& target, const Rect& hea
   // adds breathing room below it for the navigation icon and title.
   GUI.drawHeader(renderer, header, "", subtitle, readerContext);
 
+  const bool rtl = I18N.isRtl();
   fui::TextStyle titleStyle = uiThemeTokens(target).titleText;
-  titleStyle.align = fui::TextAlign::Left;
+  titleStyle.align = rtl ? fui::TextAlign::Right : fui::TextAlign::Left;
   titleStyle.maxLines = 1;
-  const int reservedRight = rightReserve > 0 ? rightReserve : defaultRightReserve;
-  const int titleWidth = std::max(0, header.x + header.width - reservedRight - back.titleX);
-  target.text(fui::Rect{static_cast<int16_t>(back.titleX), static_cast<int16_t>(back.iconRect.y),
+  // The reserve (battery/date chrome) sits opposite the back button: on the
+  // right in LTR, on the left in RTL.
+  const int reserved = rightReserve > 0 ? rightReserve : defaultRightReserve;
+  const int titleLeft = rtl ? header.x + reserved : back.titleX;
+  const int titleRight = rtl ? back.iconRect.x - titleGap : header.x + header.width - reserved;
+  const int titleWidth = std::max(0, titleRight - titleLeft);
+  target.text(fui::Rect{static_cast<int16_t>(titleLeft), static_cast<int16_t>(back.iconRect.y),
                         static_cast<int16_t>(titleWidth), static_cast<int16_t>(back.iconRect.height)},
               title, titleStyle);
 
   const int iconX = back.iconRect.x + (back.iconRect.width - ICON_SIZE) / 2;
   const int iconY = back.iconRect.y + (back.iconRect.height - ICON_SIZE) / 2;
   target.bitmap(fui::Rect{static_cast<int16_t>(iconX), static_cast<int16_t>(iconY), ICON_SIZE, ICON_SIZE},
-                fui::bitmapFromIcon(icon_back_32), fui::BitmapMode::Center);
+                fui::bitmapFromIcon(rtl ? icon_back_rtl_32 : icon_back_32), fui::BitmapMode::Center);
 }
 
 void drawCompact(GfxRenderer& renderer, const char* title, const bool readerContext, const bool showDate,

@@ -7,6 +7,7 @@
 #include <cstddef>
 
 #include "CrossPointSettings.h"
+#include "I18n.h"
 #include "components/themes/BaseTheme.h"
 #include "fontIds.h"
 
@@ -81,7 +82,9 @@ void drawHeaderDateAtBaseline(const GfxRenderer& renderer, const int pageWidth, 
 
   constexpr int dateFontId = UI_10_FONT_ID;
   const int textWidth = renderer.getTextWidth(dateFontId, dateBuf);
-  const int dateX = pageWidth - kHeaderDateRightInset - textWidth;
+  // Mirrors to the left edge under RTL UI languages, matching the header
+  // battery/title mirroring.
+  const int dateX = I18N.isRtl() ? kHeaderDateRightInset : pageWidth - kHeaderDateRightInset - textWidth;
   const int dateY = baselineY - renderer.getFontAscenderSize(dateFontId);
   renderer.drawText(dateFontId, std::max(0, dateX), std::max(0, dateY), dateBuf);
 }

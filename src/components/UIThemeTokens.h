@@ -11,6 +11,7 @@
 #include <string>
 
 #include "CrossPointSettings.h"
+#include "I18n.h"
 #include "UITheme.h"
 
 namespace UiThemeTokensDetail {
@@ -61,6 +62,7 @@ inline uint16_t configureUiList(freeink::ui::ListProps& props, const freeink::ui
   // two-line height and avoid overlapping the following item.
   if (props.labelText.maxLines > 1) props.rowHeight = std::max(props.rowHeight, tokens.rowHeight);
   if (props.rowGap < 0) props.rowGap = tokens.listRowGap;
+  props.rtl = I18N.isRtl();
   return freeink::ui::listVisibleRows(rect, props.rowHeight, props.rowGap);
 }
 
@@ -105,5 +107,15 @@ inline freeink::ui::ThemeTokens uiThemeTokens(const freeink::ui::GfxRendererTarg
   tokens.headerUnderline = static_cast<uint8_t>(metrics.headerUnderlineSize);
   tokens.headerTitleAlign = static_cast<fui::TextAlign>(metrics.headerTitleAlign);
   tokens.bodyText.bold = metrics.listTitleBold;
+  if (I18N.isRtl()) {
+    // Mirror the shared chrome for RTL UI languages: edge-anchored titles flip
+    // sides and the list scroll indicator moves to the opposite edge.
+    if (tokens.headerTitleAlign == fui::TextAlign::Left) {
+      tokens.headerTitleAlign = fui::TextAlign::Right;
+    } else if (tokens.headerTitleAlign == fui::TextAlign::Right) {
+      tokens.headerTitleAlign = fui::TextAlign::Left;
+    }
+    tokens.listScrollSide = tokens.listScrollSide == 1 ? 0 : 1;
+  }
   return tokens;
 }

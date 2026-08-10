@@ -6,6 +6,7 @@
 #include <string>
 
 #include "HeaderDate.h"
+#include "I18n.h"
 #include "UITheme.h"
 #include "fontIds.h"
 
@@ -38,13 +39,18 @@ void drawTitle(const GfxRenderer& renderer, const char* title, const bool showDa
   const int pageWidth = renderer.getScreenWidth();
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, visibleHeaderHeight(metrics)}, "");
 
-  const int titleX = metrics.contentSidePadding;
-  const int batteryStartX = pageWidth - metrics.contentSidePadding - metrics.batteryWidth;
-  const int dateStartX = showDate ? pageWidth - headerDateReservedWidth(renderer) : pageWidth;
-  const int titleRightX = std::min(batteryStartX, dateStartX) - metrics.contentSidePadding;
-  const int maxTitleWidth = std::max(1, titleRightX - titleX);
+  // RTL UI languages mirror the row: title anchors right, battery/date chrome
+  // (drawn by drawHeader/drawHeaderDateAtBaseline, which mirror themselves)
+  // occupies the left side.
+  const bool rtl = I18N.isRtl();
+  const int chromeReserve = metrics.contentSidePadding + metrics.batteryWidth +
+                            (showDate ? headerDateReservedWidth(renderer) : 0) + metrics.contentSidePadding;
+  const int maxTitleWidth = std::max(1, pageWidth - metrics.contentSidePadding - chromeReserve);
   const int baselineY = titleBaselineY(renderer, metrics);
   const std::string visibleTitle = renderer.truncatedText(UI_12_FONT_ID, title, maxTitleWidth, EpdFontFamily::BOLD);
+  const int titleX = rtl ? pageWidth - metrics.contentSidePadding -
+                               renderer.getTextWidth(UI_12_FONT_ID, visibleTitle.c_str(), EpdFontFamily::BOLD)
+                         : metrics.contentSidePadding;
 
   renderer.drawText(UI_12_FONT_ID, titleX, baselineY - renderer.getFontAscenderSize(UI_12_FONT_ID),
                     visibleTitle.c_str(), true, EpdFontFamily::BOLD);

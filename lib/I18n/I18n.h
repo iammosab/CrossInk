@@ -21,6 +21,8 @@ class I18n {
   const char* operator[](StrId id) const { return get(id); }
 
   Language getLanguage() const { return _language; }
+  // True when the UI language reads right-to-left; UI chrome mirrors on this.
+  bool isRtl() const { return _language == Language::AR || _language == Language::HE; }
   void setLanguage(Language lang);
   const char* getLanguageName(Language lang) const;
   static Language languageFromCode(const char* code);

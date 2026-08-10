@@ -443,11 +443,13 @@ void BaseTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* t
   props.borderEdges = fui::EdgeBottom;
   props.titleText = tokens.titleText;
   const bool hasVisibleTitle = title != nullptr && title[0] != '\0';
-  props.titleText.align = showHeaderClock && hasVisibleTitle ? fui::TextAlign::Left : tokens.headerTitleAlign;
+  props.titleText.align = showHeaderClock && hasVisibleTitle
+                              ? (I18N.isRtl() ? fui::TextAlign::Right : fui::TextAlign::Left)
+                              : tokens.headerTitleAlign;
   props.subtitleText = tokens.smallText;
   props.styles = tokens.popup;
   props.sidePadding = tokens.headerSidePadding;
-  const bool batteryLeft = metrics.headerBatterySide == 1;
+  const bool batteryLeft = (metrics.headerBatterySide == 1) != I18N.isRtl();
   const bool batteryDetached = metrics.headerBatteryDetached;
   const bool roundedRaffCompactHeader = !readerContext &&
                                         SETTINGS.uiTheme == CrossPointSettings::UI_THEME::ROUNDEDRAFF &&
@@ -501,20 +503,26 @@ void BaseTheme::drawSubHeader(const GfxRenderer& renderer, Rect rect, const char
   constexpr int underlineGap = 4;     // Gap between text and underline
   constexpr int maxListValueWidth = 200;
 
-  int currentX = rect.x + BaseMetrics::values.contentSidePadding;
+  // Under RTL UI languages the label anchors to the right edge and the
+  // secondary label to the left, mirroring the LTR layout.
+  const bool rtl = I18N.isRtl();
   int rightSpace = BaseMetrics::values.contentSidePadding;
   if (rightLabel) {
     auto truncatedRightLabel =
         renderer.truncatedText(SMALL_FONT_ID, rightLabel, maxListValueWidth, EpdFontFamily::REGULAR);
     int rightLabelWidth = renderer.getTextWidth(SMALL_FONT_ID, truncatedRightLabel.c_str());
-    renderer.drawText(SMALL_FONT_ID, rect.x + rect.width - BaseMetrics::values.contentSidePadding - rightLabelWidth,
-                      rect.y + 7, truncatedRightLabel.c_str());
+    const int rightLabelX = rtl ? rect.x + BaseMetrics::values.contentSidePadding
+                                : rect.x + rect.width - BaseMetrics::values.contentSidePadding - rightLabelWidth;
+    renderer.drawText(SMALL_FONT_ID, rightLabelX, rect.y + 7, truncatedRightLabel.c_str());
     rightSpace += rightLabelWidth + 10;
   }
 
   auto truncatedLabel = renderer.truncatedText(
       UI_12_FONT_ID, label, rect.width - BaseMetrics::values.contentSidePadding - rightSpace, EpdFontFamily::REGULAR);
-  renderer.drawText(UI_12_FONT_ID, currentX, rect.y, truncatedLabel.c_str(), true, EpdFontFamily::REGULAR);
+  const int labelX = rtl ? rect.x + rect.width - BaseMetrics::values.contentSidePadding -
+                               renderer.getTextWidth(UI_12_FONT_ID, truncatedLabel.c_str())
+                         : rect.x + BaseMetrics::values.contentSidePadding;
+  renderer.drawText(UI_12_FONT_ID, labelX, rect.y, truncatedLabel.c_str(), true, EpdFontFamily::REGULAR);
 }
 
 void BaseTheme::drawTabBar(const GfxRenderer& renderer, const Rect rect, const std::vector<TabInfo>& tabs,
