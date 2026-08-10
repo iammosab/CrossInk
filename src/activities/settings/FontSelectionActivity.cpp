@@ -263,6 +263,10 @@ void FontSelectionActivity::renderPreviewPane(int top, int height, int fontId, c
       fontIt != renderer.getFontMap().end() && fontIt->second.hasCodepoint(0x0628 /* beh */);
   const char* previewText =
       I18N.get(arabicPreview ? StrId::STR_FONT_PREVIEW_TEXT_ARABIC : StrId::STR_FONT_PREVIEW_TEXT);
+  // SD fonts stream glyphs from the card: make the text resident before
+  // measuring/drawing, including the shaped RTL presentation forms Arabic
+  // is actually drawn with. No-op for built-in fonts.
+  renderer.ensureSdCardFontReady(fontId, previewText, 0x01);
   if (auto* fcm = renderer.getFontCacheManager()) {
     char prewarmBuf[256];
     snprintf(prewarmBuf, sizeof(prewarmBuf), "%s %s", previewText, ELLIPSIS_UTF8);
