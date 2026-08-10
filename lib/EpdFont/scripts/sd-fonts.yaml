@@ -170,6 +170,20 @@ families:
           url: "https://raw.githubusercontent.com/notofonts/NotoSerif-Italic/main/fonts/ttf/unhinted/instance_ttf/NotoSerif-BoldItalic.ttf",
         }
 
+  - name: Amiri
+    description: "Classical Naskh in the Bulaq Press tradition"
+    languages: "Arabic, Latin"
+    intervals: arabic
+    sizes: [8, 9, 10, 12, 14, 16, 18, 20]
+    styles:
+      regular:
+        { url: "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf" }
+      bold: { url: "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf" }
+      italic:
+        { url: "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Italic.ttf" }
+      bolditalic:
+        { url: "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-BoldItalic.ttf" }
+
   - name: NotoNaskhArabic
     description: "Book Naskh for Arabic body text"
     languages: "Arabic, Latin"

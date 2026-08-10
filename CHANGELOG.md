@@ -2,7 +2,7 @@
 
 ### Added
 
-- Arabic reading support: a new Noto Naskh Arabic SD-card font family (`NotoNaskhArabic`) and an `arabic` Unicode interval preset covering the base Arabic block, Arabic Supplement, Extended-A, and the presentation forms the built-in shaping engine produces. The firmware's BiDi and Arabic shaping engine was already present; this supplies the glyphs it needed.
+- Arabic reading support: new SD-card font families `NotoNaskhArabic` (book Naskh, regular/bold) and `Amiri` (classical Bulaq-tradition Naskh, all four styles), plus an `arabic` Unicode interval preset covering the base Arabic block, Arabic Supplement, Extended-A, and the presentation forms the built-in shaping engine produces. The firmware's BiDi and Arabic shaping engine was already present; this supplies the glyphs it needed.
 
 ### Fixed
 
