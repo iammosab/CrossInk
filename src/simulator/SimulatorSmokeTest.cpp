@@ -14,8 +14,10 @@
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
 #include "activities/ActivityManager.h"
+#include "SdCardFontSystem.h"
 #include "activities/reader/EpubReaderMenuActivity.h"
 #include "activities/reader/ReaderOptionsActivity.h"
+#include "activities/settings/FontSelectionActivity.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"
 #include "components/UiAppHelpers.h"
@@ -34,6 +36,7 @@ enum class SmokeStep : uint8_t {
   RecentBooks,
   Settings,
   ReaderOptions,
+  FontSelection,
   ReaderMenu,
   Sleep,
   Reader,
@@ -187,6 +190,12 @@ class SimulatorSmokeTest {
         break;
 
       case SmokeStep::ReaderOptions:
+        activityManager.replaceActivity(
+            std::make_unique<FontSelectionActivity>(renderer, mappedInputManager, &sdFontSystem.registry()));
+        queueStep("Font Selection", SmokeStep::FontSelection, 40);
+        break;
+
+      case SmokeStep::FontSelection:
         activityManager.replaceActivity(
             std::make_unique<EpubReaderMenuActivity>(renderer, mappedInputManager, "Smoke Test", 1, 1, 0,
                                                      SETTINGS.orientation, false, false, false, false, false, false));
