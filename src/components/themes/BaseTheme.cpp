@@ -532,30 +532,36 @@ void BaseTheme::drawTabBar(const GfxRenderer& renderer, const Rect rect, const s
 
   const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
 
-  int currentX = rect.x + BaseMetrics::values.contentSidePadding;
+  // RTL UI mirrors the strip: first tab at the right edge, advancing leftward.
+  // tabIndexFromPoint mirrors identically.
+  const bool rtl = I18N.isRtl();
+  int currentX = rtl ? rect.x + rect.width - BaseMetrics::values.contentSidePadding
+                     : rect.x + BaseMetrics::values.contentSidePadding;
 
   for (size_t i = 0; i < tabs.size(); ++i) {
     const auto& tab = tabs[i];
     const int textWidth =
         renderer.getTextWidth(UI_12_FONT_ID, tab.label, tab.selected ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR);
+    const int tabX = rtl ? currentX - textWidth : currentX;
     TouchRegistry::getInstance().add(
-        Rect{currentX - 3, rect.y, textWidth + BaseMetrics::values.tabSpacing, rect.height}, static_cast<int>(i),
-        TouchRegistry::Tab);
+        Rect{rtl ? tabX + 3 - BaseMetrics::values.tabSpacing : currentX - 3, rect.y,
+             textWidth + BaseMetrics::values.tabSpacing, rect.height},
+        static_cast<int>(i), TouchRegistry::Tab);
 
     // Draw underline for selected tab
     if (tab.selected) {
       if (selected) {
-        renderer.fillRect(currentX - 3, rect.y, textWidth + 6, lineHeight + underlineGap);
+        renderer.fillRect(tabX - 3, rect.y, textWidth + 6, lineHeight + underlineGap);
       } else {
-        renderer.fillRect(currentX, rect.y + lineHeight + underlineGap, textWidth, underlineHeight);
+        renderer.fillRect(tabX, rect.y + lineHeight + underlineGap, textWidth, underlineHeight);
       }
     }
 
     // Draw tab label
-    renderer.drawText(UI_12_FONT_ID, currentX, rect.y, tab.label, !(tab.selected && selected),
+    renderer.drawText(UI_12_FONT_ID, tabX, rect.y, tab.label, !(tab.selected && selected),
                       tab.selected ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR);
 
-    currentX += textWidth + BaseMetrics::values.tabSpacing;
+    currentX += rtl ? -(textWidth + BaseMetrics::values.tabSpacing) : (textWidth + BaseMetrics::values.tabSpacing);
   }
 }
 
@@ -565,18 +571,26 @@ bool BaseTheme::tabIndexFromPoint(const GfxRenderer& renderer, const Rect rect, 
     return false;
   }
 
-  int currentX = rect.x + BaseMetrics::values.contentSidePadding;
+  const bool rtl = I18N.isRtl();
+  int currentX = rtl ? rect.x + rect.width - BaseMetrics::values.contentSidePadding
+                     : rect.x + BaseMetrics::values.contentSidePadding;
   for (size_t i = 0; i < tabs.size(); i++) {
     const auto& tab = tabs[i];
     const int textWidth =
         renderer.getTextWidth(UI_12_FONT_ID, tab.label, tab.selected ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR);
-    const int left = (i == 0) ? rect.x : currentX - BaseMetrics::values.tabSpacing / 2;
-    const int right = currentX + textWidth + BaseMetrics::values.tabSpacing / 2;
+    int left, right;
+    if (rtl) {
+      right = (i == 0) ? rect.x + rect.width : currentX + BaseMetrics::values.tabSpacing / 2;
+      left = currentX - textWidth - BaseMetrics::values.tabSpacing / 2;
+    } else {
+      left = (i == 0) ? rect.x : currentX - BaseMetrics::values.tabSpacing / 2;
+      right = currentX + textWidth + BaseMetrics::values.tabSpacing / 2;
+    }
     if (x >= left && x < right) {
       index = static_cast<int>(i);
       return true;
     }
-    currentX += textWidth + BaseMetrics::values.tabSpacing;
+    currentX += rtl ? -(textWidth + BaseMetrics::values.tabSpacing) : (textWidth + BaseMetrics::values.tabSpacing);
   }
 
   return false;

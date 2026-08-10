@@ -1120,6 +1120,7 @@ void SettingsActivity::buildSettingsScreen(UiApp::ScreenType& screen) {
   tabProps.count = categoryCount;
   tabProps.action = ACTION_TAB;
   tabProps.inputMask = fui::InputTouch;
+  tabProps.rtl = I18N.isRtl();
   // Small text: four category labels share the band, the body font truncates.
   tabProps.text = screen.theme().smallText;
   // Pill wraps the label with real padding; the band grows with the scaled

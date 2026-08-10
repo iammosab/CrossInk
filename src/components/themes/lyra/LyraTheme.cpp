@@ -126,7 +126,11 @@ void LyraTheme::drawSubHeader(const GfxRenderer& renderer, Rect rect, const char
 
 void LyraTheme::drawTabBar(const GfxRenderer& renderer, Rect rect, const std::vector<TabInfo>& tabs,
                            bool selected) const {
-  int currentX = rect.x + LyraMetrics::values.contentSidePadding;
+  // RTL UI mirrors the strip: the first tab anchors at the right edge and
+  // later tabs advance leftward. tabIndexFromPoint mirrors identically.
+  const bool rtl = I18N.isRtl();
+  int currentX = rtl ? rect.x + rect.width - LyraMetrics::values.contentSidePadding
+                     : rect.x + LyraMetrics::values.contentSidePadding;
 
   if (selected) {
     renderer.fillRectDither(rect.x, rect.y, rect.width, rect.height, Color::LightGray);
@@ -137,26 +141,27 @@ void LyraTheme::drawTabBar(const GfxRenderer& renderer, Rect rect, const std::ve
   for (size_t i = 0; i < tabs.size(); ++i) {
     const auto& tab = tabs[i];
     const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, tab.label, EpdFontFamily::REGULAR);
+    const int pillWidth = textWidth + 2 * hPaddingInSelection;
+    const int advance = pillWidth + LyraMetrics::values.tabSpacing;
+    const int tabX = rtl ? currentX - pillWidth : currentX;
     TouchRegistry::getInstance().add(
-        Rect{currentX, rect.y, textWidth + LyraMetrics::values.tabSpacing + 2 * hPaddingInSelection, rect.height},
+        Rect{rtl ? tabX - LyraMetrics::values.tabSpacing : currentX, rect.y,
+             textWidth + LyraMetrics::values.tabSpacing + 2 * hPaddingInSelection, rect.height},
         static_cast<int>(i), TouchRegistry::Tab);
 
     if (tab.selected) {
       if (selected) {
-        renderer.fillRoundedRect(currentX, rect.y + 1, textWidth + 2 * hPaddingInSelection, rect.height - 4,
-                                 cornerRadius, Color::Black);
+        renderer.fillRoundedRect(tabX, rect.y + 1, pillWidth, rect.height - 4, cornerRadius, Color::Black);
       } else {
-        renderer.fillRectDither(currentX, rect.y, textWidth + 2 * hPaddingInSelection, rect.height - 3,
-                                Color::LightGray);
-        renderer.drawLine(currentX, rect.y + rect.height - 3, currentX + textWidth + 2 * hPaddingInSelection,
-                          rect.y + rect.height - 3, 2, true);
+        renderer.fillRectDither(tabX, rect.y, pillWidth, rect.height - 3, Color::LightGray);
+        renderer.drawLine(tabX, rect.y + rect.height - 3, tabX + pillWidth, rect.y + rect.height - 3, 2, true);
       }
     }
 
-    renderer.drawText(UI_10_FONT_ID, currentX + hPaddingInSelection, textY, tab.label, !(tab.selected && selected),
+    renderer.drawText(UI_10_FONT_ID, tabX + hPaddingInSelection, textY, tab.label, !(tab.selected && selected),
                       EpdFontFamily::REGULAR);
 
-    currentX += textWidth + LyraMetrics::values.tabSpacing + 2 * hPaddingInSelection;
+    currentX += rtl ? -advance : advance;
   }
 
   renderer.drawLine(rect.x, rect.y + rect.height - 1, rect.x + rect.width - 1, rect.y + rect.height - 1, true);
@@ -168,17 +173,25 @@ bool LyraTheme::tabIndexFromPoint(const GfxRenderer& renderer, const Rect rect, 
     return false;
   }
 
-  int currentX = rect.x + LyraMetrics::values.contentSidePadding;
+  const bool rtl = I18N.isRtl();
+  int currentX = rtl ? rect.x + rect.width - LyraMetrics::values.contentSidePadding
+                     : rect.x + LyraMetrics::values.contentSidePadding;
   for (size_t i = 0; i < tabs.size(); i++) {
     const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, tabs[i].label, EpdFontFamily::REGULAR);
     const int tabWidth = textWidth + 2 * hPaddingInSelection;
-    const int left = (i == 0) ? rect.x : currentX - LyraMetrics::values.tabSpacing / 2;
-    const int right = currentX + tabWidth + LyraMetrics::values.tabSpacing / 2;
+    int left, right;
+    if (rtl) {
+      right = (i == 0) ? rect.x + rect.width : currentX + LyraMetrics::values.tabSpacing / 2;
+      left = currentX - tabWidth - LyraMetrics::values.tabSpacing / 2;
+    } else {
+      left = (i == 0) ? rect.x : currentX - LyraMetrics::values.tabSpacing / 2;
+      right = currentX + tabWidth + LyraMetrics::values.tabSpacing / 2;
+    }
     if (x >= left && x < right) {
       index = static_cast<int>(i);
       return true;
     }
-    currentX += tabWidth + LyraMetrics::values.tabSpacing;
+    currentX += rtl ? -(tabWidth + LyraMetrics::values.tabSpacing) : (tabWidth + LyraMetrics::values.tabSpacing);
   }
 
   return false;
