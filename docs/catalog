@@ -2,32 +2,32 @@
   "schema_version": 1,
   "releases": [
     {
-      "id": "stable-1.5.0-x3-x4",
+      "id": "stable-1.5.0-ar.1-x3-x4",
       "channel": "stable",
-      "name": "1.5.0",
-      "version": "1.5.0",
+      "name": "1.5.0-ar.1",
+      "version": "1.5.0-ar.1",
       "variant": "x3-x4",
-      "released_at": "2026-08-08T21:46:17Z",
-      "notes": "CrossInk 1.5.0 stable firmware",
-      "firmware_url": "https://github.com/uxjulia/CrossInk/releases/download/v1.5.0/firmware-x3-x4-v1.5.0.bin",
-      "firmware_sha256": "b5debe8b6b3f26f1af53410f388a2eb8def78b19b0c04aa94e46e942684dce2f",
-      "size": 6260208,
+      "released_at": "2026-08-11T17:11:03Z",
+      "notes": "CrossInk 1.5.0-ar.1 stable firmware",
+      "firmware_url": "https://github.com/iammosab/CrossInk/releases/download/v1.5.0-ar.1/firmware-x3-x4-v1.5.0-ar.1.bin",
+      "firmware_sha256": "c58b676e5cfc396b3bdd03c47837c91a86add0456f7cc2d3c3cd136b0e594b98",
+      "size": 6549152,
       "supported_devices": [
         "x4",
         "x3"
       ]
     },
     {
-      "id": "stable-1.5.0-sticky",
+      "id": "stable-1.5.0-ar.1-sticky",
       "channel": "stable",
-      "name": "1.5.0",
-      "version": "1.5.0",
+      "name": "1.5.0-ar.1",
+      "version": "1.5.0-ar.1",
       "variant": "sticky",
-      "released_at": "2026-08-08T21:46:17Z",
-      "notes": "CrossInk 1.5.0 stable firmware",
-      "firmware_url": "https://github.com/uxjulia/CrossInk/releases/download/v1.5.0/firmware-sticky-v1.5.0.bin",
-      "firmware_sha256": "1373e000d0f5d160bb16c24b9e427bb5a489570a62c1838c7f7b198579054366",
-      "size": 6052160,
+      "released_at": "2026-08-11T17:11:03Z",
+      "notes": "CrossInk 1.5.0-ar.1 stable firmware",
+      "firmware_url": "https://github.com/iammosab/CrossInk/releases/download/v1.5.0-ar.1/firmware-sticky-v1.5.0-ar.1.bin",
+      "firmware_sha256": "1265fae77667ef14f698f2a6b081396e678180f4a01eb127160fc14bf17231f3",
+      "size": 6340608,
       "supported_devices": [
         "sticky"
       ]
