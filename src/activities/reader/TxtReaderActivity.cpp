@@ -122,6 +122,8 @@ void TxtReaderActivity::onEnter() {
 
   // Activate reader-specific front button mapping (if configured).
   mappedInput.setReaderMode(true);
+  // Plain text carries no language tag; follow the UI language's direction.
+  mappedInput.setRtlPageTurns(I18N.isRtl());
 
   txt->setupCacheDir();
 
@@ -143,6 +145,7 @@ void TxtReaderActivity::onExit() {
 
   // Deactivate reader-specific front button mapping.
   mappedInput.setReaderMode(false);
+  mappedInput.setRtlPageTurns(false);
 
   if (!flushQueuedProgress()) {
     LOG_ERR("TRS", "Failed to flush debounced reader progress on exit");

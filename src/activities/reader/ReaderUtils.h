@@ -42,6 +42,24 @@ inline void applyOrientation(GfxRenderer& renderer, const uint8_t orientation) {
   renderer.setOrientation(toRendererOrientation(orientation));
 }
 
+// True when an ISO language code names a right-to-left-script language.
+// Unknown/empty codes return the caller's fallback (typically the UI
+// language's direction) so untagged books still turn pages naturally.
+inline bool languageCodeIsRtl(const char* code, const bool fallbackWhenUnknown) {
+  if (code == nullptr || code[0] == '\0') return fallbackWhenUnknown;
+  const auto lower = [](const char c) { return static_cast<char>(c >= 'A' && c <= 'Z' ? c + 32 : c); };
+  const char a = lower(code[0]);
+  const char b = lower(code[1]);
+  const char c = code[1] != '\0' ? lower(code[2]) : '\0';
+  const bool twoLetterEnd = c == '\0' || c == '-' || c == '_';
+  if (twoLetterEnd) {
+    return (a == 'a' && b == 'r') || (a == 'h' && b == 'e') || (a == 'f' && b == 'a') || (a == 'u' && b == 'r') ||
+           (a == 'p' && b == 's') || (a == 's' && b == 'd') || (a == 'u' && b == 'g') || (a == 'd' && b == 'v') ||
+           (a == 'y' && b == 'i');
+  }
+  return a == 'c' && b == 'k' && c == 'b';  // Sorani Kurdish
+}
+
 inline bool shouldShowTopClockStatusBar() { return halClock.isAvailable() && SETTINGS.shouldShowClockInReader(); }
 
 inline bool readerDarkModeEnabled() { return SETTINGS.readerDarkMode != 0; }
@@ -105,12 +123,15 @@ inline TouchPageTurn detectTouchPageTurn(const GfxRenderer& renderer, const Mapp
     return result;
   }
 
+  // RTL books flow right-to-left: the physical page-turn metaphor flips, so
+  // tap zones and swipe directions mirror along with the button mapping.
+  const bool rtl = input.getRtlPageTurns();
   const auto swipe = input.wasSwipe();
   if (swipe != MappedInputManager::SwipeDir::None) {
     // A horizontal reader swipe turns pages wherever it starts. Edge-only
     // navigation remains handled by the activities that explicitly use it.
-    result.prev = swipe == MappedInputManager::SwipeDir::Right;
-    result.next = swipe == MappedInputManager::SwipeDir::Left;
+    result.prev = swipe == (rtl ? MappedInputManager::SwipeDir::Left : MappedInputManager::SwipeDir::Right);
+    result.next = swipe == (rtl ? MappedInputManager::SwipeDir::Right : MappedInputManager::SwipeDir::Left);
     return result;
   }
 
@@ -129,8 +150,13 @@ inline TouchPageTurn detectTouchPageTurn(const GfxRenderer& renderer, const Mapp
   }
 
   const int previousZoneWidth = width / 3;
-  result.prev = x < previousZoneWidth;
-  result.next = x >= previousZoneWidth;
+  if (rtl) {
+    result.prev = x >= width - previousZoneWidth;
+    result.next = x < width - previousZoneWidth;
+  } else {
+    result.prev = x < previousZoneWidth;
+    result.next = x >= previousZoneWidth;
+  }
   result.heldMs = input.getHeldTime();
   return result;
 #endif

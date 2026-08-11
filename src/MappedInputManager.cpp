@@ -178,15 +178,18 @@ uint8_t MappedInputManager::mappedFrontButtonFor(const Button button) const {
   const ButtonIndex mappedLeft = mapFrontButtonForReaderOrientation(btnLeft, btnLeft, btnRight, readerMode);
   const ButtonIndex mappedRight = mapFrontButtonForReaderOrientation(btnRight, btnLeft, btnRight, readerMode);
 
+  // RTL page turns: logical Left (previous) lives on the physical right
+  // button and vice versa, matching the right-to-left page flow.
+  const bool swapForRtl = readerMode && rtlPageTurns;
   switch (button) {
     case Button::Back:
       return mappedBack;
     case Button::Confirm:
       return mappedConfirm;
     case Button::Left:
-      return mappedLeft;
+      return swapForRtl ? mappedRight : mappedLeft;
     case Button::Right:
-      return mappedRight;
+      return swapForRtl ? mappedLeft : mappedRight;
     default:
       return kNoButton;
   }
@@ -793,11 +796,12 @@ MappedInputManager::Labels MappedInputManager::mapLabels(const char* back, const
   const ButtonIndex mappedRight = mapFrontButtonForReaderOrientation(btnRight, btnLeft, btnRight, readerMode);
 
   // Build the label order based on the configured hardware mapping.
+  const bool swapForRtl = readerMode && rtlPageTurns;
   auto labelForHardware = [&](ButtonIndex hw) -> const char* {
     if (hw == mappedBack) return back;
     if (hw == mappedConfirm) return confirm;
-    if (hw == mappedLeft) return previous;
-    if (hw == mappedRight) return next;
+    if (hw == mappedLeft) return swapForRtl ? next : previous;
+    if (hw == mappedRight) return swapForRtl ? previous : next;
     return "";
   };
 

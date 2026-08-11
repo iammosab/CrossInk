@@ -24,6 +24,12 @@ class MappedInputManager {
   // Enable/disable reader-specific front button mapping.
   // Call with true in reader activity onEnter(), false in onExit().
   void setReaderMode(bool enabled) { readerMode = enabled; }
+  // RTL books turn pages right-to-left: forward is the LEFT side. When set
+  // (by the reader activities, from the book's language), the logical
+  // Left/Right buttons swap their physical resolution in reader mode, and
+  // mapLabels places the prev/next hint labels accordingly.
+  void setRtlPageTurns(bool enabled) { rtlPageTurns = enabled; }
+  bool getRtlPageTurns() const { return rtlPageTurns; }
   void setPowerAsConfirmInReaderMode(bool enabled) { powerAsConfirmInReaderMode = enabled; }
 #if CROSSINK_APP_CAP_TOUCH
   void setReaderTouchscreenOverride(bool enabled) { readerTouchscreenOverride = enabled; }
@@ -160,6 +166,7 @@ class MappedInputManager {
   HalGPIO& gpio;
   const GfxRenderer& renderer;
   bool readerMode = false;
+  bool rtlPageTurns = false;
   bool powerAsConfirmInReaderMode = false;
 #if CROSSINK_APP_CAP_TOUCH
   bool readerTouchscreenOverride = false;

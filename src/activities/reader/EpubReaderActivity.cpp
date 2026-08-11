@@ -2001,6 +2001,9 @@ void EpubReaderActivity::onEnter() {
 
   // Activate reader-specific front button mapping (if configured).
   mappedInput.setReaderMode(true);
+  // RTL books turn pages right-to-left: swap the logical prev/next buttons.
+  // The OPF language decides; untagged books follow the UI language.
+  mappedInput.setRtlPageTurns(ReaderUtils::languageCodeIsRtl(epub->getLanguage().c_str(), I18N.isRtl()));
 
   BOOKMARKS.loadForBook(epub->getPath(), epub->getTitle(), epub->getAuthor(), "epub");
   CLIPPINGS.loadForBook(epub->getPath(), epub->getTitle(), epub->getAuthor(), "epub");
@@ -2122,6 +2125,7 @@ void EpubReaderActivity::onExit() {
 
   // Deactivate reader-specific front button mapping.
   mappedInput.setReaderMode(false);
+  mappedInput.setRtlPageTurns(false);
 
   if (footnoteDepth == 0 && !flushQueuedProgress()) {
     LOG_ERR("ERS", "Failed to flush debounced reader progress on exit");
