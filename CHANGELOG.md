@@ -7,6 +7,11 @@
 - The font selection preview now shows an Arabic pangram, right-aligned, when the previewed font covers Arabic, so Arabic fonts can actually be compared before selecting one.
 - The UI now mirrors for right-to-left languages (Arabic, Hebrew): headers, titles, and the back button anchor to the right with battery/date chrome on the left, list rows put labels on the right and values/toggles on the left, selection markers and submenu carets flip sides, and the touch back target moves with the button. The Lyra Home screen mirrors too: book cover on the right with right-aligned title, author, stats, and a progress bar filling from the right, and menu rows with icons on the right edge. Button-hint labels stay in physical button order.
 
+- Kashida justification: justified Arabic lines absorb surplus width by elongating the connecting stroke inside words — the way set Arabic type is justified — instead of only widening inter-word gaps.
+- Harakat now stack (shadda + vowel no longer overprint) and hug their letters' heights instead of floating at a fixed level.
+- Arabic dictionary lookups retry normalized variants: harakat stripped, hamza-alefs unified, and attached particles (ال، و، ب…) removed, so vocalized or prefixed words find their headwords.
+- Optional Eastern Arabic numerals (٠١٢٣) for the reader status bar.
+- Arabic reading correctness: no more fabricated hyphens in over-wide Arabic words, no severed letter joins from Bionic Reading or partial-word bold/italic markup, pre-shaped EPUBs order correctly, word selection navigates in reading order and multi-word selections assemble correctly, Arabic kerning applies un-transposed, and plain-text files keep paragraph alignment across wrapped lines.
 - Arabic on-screen keyboard: the standard 101-key arrangement with the hamza-alef variants (أ إ آ) on long-press, plus a language key that switches between the Arabic and Latin layouts. The same key now also enables the previously dormant Hebrew layout for Hebrew UI users.
 
 ### Fixed
