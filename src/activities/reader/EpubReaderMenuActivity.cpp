@@ -439,9 +439,13 @@ void EpubReaderMenuActivity::drawIconTabBar(const Rect rect, const bool drawBott
 #else
   constexpr size_t iconCount = MENU_TAB_COUNT;
 #endif
+  // RTL UI mirrors the strip: first tab at the right edge. Tab identity (i)
+  // is unchanged so touch values and navigation stay consistent.
+  const bool rtlTabs = I18N.isRtl();
   for (size_t i = 0; i < iconCount; i++) {
-    const int slotX = rect.x + static_cast<int>((i * rect.width) / iconCount);
-    const int nextSlotX = rect.x + static_cast<int>(((i + 1) * rect.width) / iconCount);
+    const size_t vi = rtlTabs ? iconCount - 1 - i : i;
+    const int slotX = rect.x + static_cast<int>((vi * rect.width) / iconCount);
+    const int nextSlotX = rect.x + static_cast<int>(((vi + 1) * rect.width) / iconCount);
     const int slotWidth = nextSlotX - slotX;
     const int centerX = slotX + slotWidth / 2;
     const bool selected = i < MENU_TAB_COUNT && i == activeTabIndex();

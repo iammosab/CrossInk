@@ -2,6 +2,7 @@
 
 #include <GfxRenderer.h>
 #include <I18n.h>
+#include <Utf8.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -587,9 +588,30 @@ void EpubReaderClippingListActivity::renderDetail() {
   const int textX = contentX + DETAIL_SIDE_MARGIN;
   const int firstLine = detailPage * detailLinesPerPage;
   const int lastLine = std::min(static_cast<int>(detailLines.size()), firstLine + detailLinesPerPage);
+  // RTL clippings right-align their wrapped lines; direction is a property of
+  // the clipping as a whole, so every line (even one starting with digits or
+  // Latin) keeps the same edge.
+  bool detailRtl = false;
+  {
+    const auto* q = reinterpret_cast<const uint8_t*>(detailText.c_str());
+    uint32_t cp;
+    int probed = 0;
+    while ((cp = utf8NextCodepoint(&q)) && probed++ < 8) {
+      if ((cp >= 0x0590 && cp <= 0x08FF) || (cp >= 0xFB1D && cp <= 0xFEFF)) {
+        detailRtl = true;
+        break;
+      }
+      if ((cp >= 'A' && cp <= 'z')) break;
+    }
+  }
   int y = textStartY;
   for (int i = firstLine; i < lastLine; i++) {
-    renderer.drawText(UI_10_FONT_ID, textX, y, detailLines[i].c_str());
+    int x = textX;
+    if (detailRtl && !detailLines[i].empty()) {
+      x = contentX + contentWidth - DETAIL_SIDE_MARGIN -
+          renderer.getTextAdvanceX(UI_10_FONT_ID, detailLines[i].c_str(), EpdFontFamily::REGULAR);
+    }
+    renderer.drawText(UI_10_FONT_ID, x, y, detailLines[i].c_str());
     y += lineStep;
   }
 
