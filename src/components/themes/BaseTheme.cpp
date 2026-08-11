@@ -928,11 +928,29 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
       snprintf(progressStr, sizeof(progressStr), "%s%d/%d", estimatePrefix, currentPage, pageCount);
     }
 
+    char easternBuf[96];
+    if (SETTINGS.easternArabicNumerals) {
+      // ASCII digits become U+0660-0669 (2 bytes each); other bytes copy.
+      size_t o = 0;
+      for (const char* q = progressStr; *q != '\0' && o + 3 < sizeof(easternBuf); q++) {
+        if (*q >= '0' && *q <= '9') {
+          easternBuf[o++] = '\xD9';
+          easternBuf[o++] = static_cast<char>(0xA0 + (*q - '0'));
+        } else {
+          easternBuf[o++] = *q;
+        }
+      }
+      easternBuf[o] = '\0';
+      snprintf(progressStr, sizeof(progressStr), "%s", easternBuf);
+    }
     progressTextWidth = renderer.getTextWidth(SMALL_FONT_ID, progressStr);
     const int progressX =
         rtl ? metrics.statusBarHorizontalMargin + orientedMarginLeft
             : renderer.getScreenWidth() - metrics.statusBarHorizontalMargin - orientedMarginRight - progressTextWidth;
-    renderer.drawText(SMALL_FONT_ID, progressX, textY, progressStr, foregroundBlack);
+    // Explicit RTL base keeps the segment order deterministic for the
+    // Eastern-digit string (Arabic-Indic digits carry no strong direction).
+    renderer.drawText(SMALL_FONT_ID, progressX, textY, progressStr, foregroundBlack, EpdFontFamily::REGULAR,
+                      SETTINGS.easternArabicNumerals ? BidiUtils::BidiBaseDir::RTL : BidiUtils::BidiBaseDir::AUTO);
   }
 
   // Draw Progress Bar

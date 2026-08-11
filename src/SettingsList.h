@@ -782,6 +782,8 @@ inline const std::vector<SettingInfo>& getBaseSettingsList() {
                             "statusBarChapterPageCount", StrId::STR_CUSTOMISE_STATUS_BAR));
     add(SettingInfo::Toggle(StrId::STR_STABLE_PAGE_NUMBERS, &CrossPointSettings::stablePageNumbers, "stablePageNumbers",
                             StrId::STR_CUSTOMISE_STATUS_BAR));
+    add(SettingInfo::Toggle(StrId::STR_EASTERN_ARABIC_NUMERALS, &CrossPointSettings::easternArabicNumerals,
+                            "easternArabicNumerals", StrId::STR_CUSTOMISE_STATUS_BAR));
     add(SettingInfo::Toggle(StrId::STR_BOOK_PROGRESS_PERCENTAGE, &CrossPointSettings::statusBarBookProgressPercentage,
                             "statusBarBookProgressPercentage", StrId::STR_CUSTOMISE_STATUS_BAR));
     add(SettingInfo::Enum(StrId::STR_PROGRESS_BAR, &CrossPointSettings::statusBarProgressBar,

@@ -33,7 +33,8 @@ constexpr uint32_t MAX_CACHE_PAGES = 65535;   // Sanity cap to prevent unbounded
 // Parses and word-wraps lines from a file chunk into outLines.
 // Returns the number of bytes consumed from the start of buffer.
 size_t parseAndWrapLines(const uint8_t* buffer, size_t chunkSize, size_t fileOffset, size_t fileSize, int linesPerPage,
-                         GfxRenderer& renderer, int fontId, int vw, std::vector<std::string>& outLines) {
+                         GfxRenderer& renderer, int fontId, int vw, std::vector<std::string>& outLines,
+                         std::vector<uint8_t>* outLineRtl = nullptr) {
   size_t pos = 0;
   while (pos < chunkSize && static_cast<int>(outLines.size()) < linesPerPage) {
     size_t lineEnd = pos;
@@ -46,15 +47,25 @@ size_t parseAndWrapLines(const uint8_t* buffer, size_t chunkSize, size_t fileOff
     size_t displayLen = hasCR ? lineContentLen - 1 : lineContentLen;
     std::string line(reinterpret_cast<const char*>(buffer + pos), displayLen);
     size_t lineBytePos = 0;
+    // Direction is a property of the source paragraph, probed once here so a
+    // wrapped continuation starting with digits or a Latin word keeps its
+    // paragraph's right alignment.
+    const uint8_t sourceLineRtl =
+        line.empty() ? 0 : (BidiUtils::startsWithRtl(line.c_str(), BidiUtils::RTL_PARAGRAPH_PROBE_DEPTH) ? 1 : 0);
+    const auto pushLineRtl = [&]() {
+      if (outLineRtl) outLineRtl->push_back(sourceLineRtl);
+    };
 
     do {
       if (line.empty()) {
         outLines.emplace_back();
+        pushLineRtl();
         break;
       }
 
       if (renderer.getTextWidth(fontId, line.c_str()) <= vw) {
         outLines.push_back(line);
+        pushLineRtl();
         lineBytePos = displayLen;
         line.clear();
         break;
@@ -74,6 +85,7 @@ size_t parseAndWrapLines(const uint8_t* buffer, size_t chunkSize, size_t fileOff
         while (breakPos < line.length() && (line[breakPos] & 0xC0) == 0x80) breakPos++;
       }
       outLines.push_back(line.substr(0, breakPos));
+      pushLineRtl();
       size_t skipChars = breakPos;
       if (breakPos < line.length() && line[breakPos] == ' ') skipChars++;
       lineBytePos += skipChars;
@@ -463,7 +475,8 @@ void TxtReaderActivity::buildPageIndex() {
     std::vector<std::string> tempLines;
     size_t nextOffset = offset;
 
-    if (!loadPageAtOffset(offset, tempLines, nextOffset)) {
+    std::vector<uint8_t> tempLinesRtl;
+    if (!loadPageAtOffset(offset, tempLines, tempLinesRtl, nextOffset)) {
       break;
     }
 
@@ -486,7 +499,8 @@ void TxtReaderActivity::buildPageIndex() {
   totalPages = pageOffsets.size();
 }
 
-bool TxtReaderActivity::loadPageAtOffset(size_t offset, std::vector<std::string>& outLines, size_t& nextOffset) {
+bool TxtReaderActivity::loadPageAtOffset(size_t offset, std::vector<std::string>& outLines,
+                                         std::vector<uint8_t>& outLinesRtl, size_t& nextOffset) {
   outLines.clear();
   const size_t fileSize = txt->getFileSize();
 
@@ -516,7 +530,7 @@ bool TxtReaderActivity::loadPageAtOffset(size_t offset, std::vector<std::string>
   }
 
   size_t pos = parseAndWrapLines(buffer, chunkSize, offset, fileSize, linesPerPage, renderer, cachedFontId,
-                                 viewportWidth, outLines);
+                                 viewportWidth, outLines, &outLinesRtl);
   nextOffset = offset + pos;
   if (nextOffset > fileSize) {
     nextOffset = fileSize;
@@ -553,7 +567,8 @@ void TxtReaderActivity::render(RenderLock&&) {
   size_t offset = pageOffsets[currentPage];
   size_t nextOffset;
   currentPageLines.clear();
-  loadPageAtOffset(offset, currentPageLines, nextOffset);
+  currentPageLineRtl.clear();
+  loadPageAtOffset(offset, currentPageLines, currentPageLineRtl, nextOffset);
 
   renderer.clearScreen(ReaderUtils::readerBackgroundColor());
   renderPage();
@@ -570,10 +585,13 @@ void TxtReaderActivity::renderPage() {
   // Render text lines with alignment
   auto renderLines = [&]() {
     int y = cachedOrientedMarginTop;
-    for (const auto& line : currentPageLines) {
+    for (size_t li = 0; li < currentPageLines.size(); li++) {
+      const auto& line = currentPageLines[li];
       if (!line.empty()) {
         int x = cachedOrientedMarginLeft;
-        const bool lineIsRtl = BidiUtils::startsWithRtl(line.c_str(), BidiUtils::RTL_PARAGRAPH_PROBE_DEPTH);
+        const bool lineIsRtl = li < currentPageLineRtl.size()
+                                   ? currentPageLineRtl[li] != 0
+                                   : BidiUtils::startsWithRtl(line.c_str(), BidiUtils::RTL_PARAGRAPH_PROBE_DEPTH);
         uint8_t effectiveAlignment = cachedParagraphAlignment;
         if (lineIsRtl && (effectiveAlignment == CrossPointSettings::LEFT_ALIGN ||
                           effectiveAlignment == CrossPointSettings::JUSTIFIED)) {
@@ -963,7 +981,8 @@ bool TxtReaderActivity::drawCurrentPageToBuffer(const std::string& filePath, Gfx
   }
   buffer[chunkSize] = '\0';
 
-  parseAndWrapLines(buffer, chunkSize, offset, fileSize, linesPerPage, renderer, fontId, vw, pageLines);
+  std::vector<uint8_t> pageLinesRtl;
+  parseAndWrapLines(buffer, chunkSize, offset, fileSize, linesPerPage, renderer, fontId, vw, pageLines, &pageLinesRtl);
   free(buffer);
 
   if (pageLines.empty()) return false;
@@ -971,10 +990,16 @@ bool TxtReaderActivity::drawCurrentPageToBuffer(const std::string& filePath, Gfx
   // Render lines to frame buffer (no displayBuffer call)
   renderer.clearScreen(ReaderUtils::readerBackgroundColor());
   int y = marginTop;
-  for (const auto& line : pageLines) {
+  for (size_t li = 0; li < pageLines.size(); li++) {
+    const auto& line = pageLines[li];
     if (!line.empty()) {
       int x = marginLeft;
-      switch (paragraphAlignment) {
+      uint8_t effectiveAlign = paragraphAlignment;
+      if (li < pageLinesRtl.size() && pageLinesRtl[li] &&
+          (effectiveAlign == CrossPointSettings::LEFT_ALIGN || effectiveAlign == CrossPointSettings::JUSTIFIED)) {
+        effectiveAlign = CrossPointSettings::RIGHT_ALIGN;
+      }
+      switch (effectiveAlign) {
         case CrossPointSettings::CENTER_ALIGN:
           x = marginLeft + (vw - renderer.getTextWidth(fontId, line.c_str())) / 2;
           break;

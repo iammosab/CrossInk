@@ -23,6 +23,8 @@ class TxtReaderActivity final : public Activity {
   // Streaming text reader - stores file offsets for each page
   std::vector<size_t> pageOffsets;  // File offset for start of each page
   std::vector<std::string> currentPageLines;
+  // Parallel per-display-line paragraph direction (1 = RTL) from the wrapper.
+  std::vector<uint8_t> currentPageLineRtl;
   int linesPerPage = 0;
   int viewportWidth = 0;
   bool initialized = false;
@@ -40,7 +42,8 @@ class TxtReaderActivity final : public Activity {
   void renderStatusBar() const;
 
   void initializeReader();
-  bool loadPageAtOffset(size_t offset, std::vector<std::string>& outLines, size_t& nextOffset);
+  bool loadPageAtOffset(size_t offset, std::vector<std::string>& outLines, std::vector<uint8_t>& outLinesRtl,
+                        size_t& nextOffset);
   void buildPageIndex();
   bool loadPageIndexCache();
   void savePageIndexCache() const;

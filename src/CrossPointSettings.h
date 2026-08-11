@@ -328,6 +328,9 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   uint8_t statusBarChapterPageCount = 1;
   uint8_t statusBarBookProgressPercentage = 1;
   uint8_t stablePageNumbers = 0;
+  // Render reader status-bar digits as Eastern Arabic numerals (Mashriqi
+  // convention). Off by default: Maghreb Arabic uses Western digits.
+  uint8_t easternArabicNumerals = 0;
   uint8_t statusBarProgressBar = HIDE_PROGRESS;
   uint8_t statusBarProgressBarThickness = PROGRESS_BAR_NORMAL;
   uint8_t statusBarTitle = CHAPTER_TITLE;
