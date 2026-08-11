@@ -133,6 +133,19 @@ const WordSelectNavigator::WordInfo* WordSelectNavigator::getWordAt(int idx) con
   return &words[idx];
 }
 
+bool WordSelectNavigator::rowIsRtl(const int row) const {
+  if (row < 0 || row >= static_cast<int>(rows.size())) return false;
+  // Majority vote: rows come from one paragraph line, so mixed rows follow
+  // the dominant (paragraph) direction.
+  int rtlCount = 0;
+  const int first = rows[row].firstWord;
+  const int count = rows[row].wordCount;
+  for (int i = 0; i < count; i++) {
+    if (words[first + i].isRtl) rtlCount++;
+  }
+  return rtlCount * 2 > count;
+}
+
 std::string WordSelectNavigator::buildPhrase(int fromIdx, int toIdx) const {
   const int lo = std::min(fromIdx, toIdx);
   const int hi = std::max(fromIdx, toIdx);
@@ -140,16 +153,32 @@ std::string WordSelectNavigator::buildPhrase(int fromIdx, int toIdx) const {
   // Skip index for a hyphenated pair's second half once its merged lookup text
   // has already been emitted via the first half, so the pair isn't duplicated.
   int skipIdx = -1;
-  for (int i = lo; i <= hi; i++) {
-    if (i == skipIdx) continue;
+  const auto append = [&](const int i, const bool noSpaceSeam) {
+    if (i == skipIdx) return;
     const auto* w = getWordAt(i);
-    if (!w) continue;
-    if (!phrase.empty() && !w->joinWithoutSpaceBefore) phrase += ' ';
+    if (!w) return;
+    if (!phrase.empty() && !noSpaceSeam) phrase += ' ';
     // getLookup() returns the merged, hyphen-stripped text for a hyphenated
     // pair (e.g. "externity" for "exter-" + "nity"), matching the single-word
     // lookup path. For ordinary words it equals the display text.
     phrase += getLookup(*w);
     if (w->continuationIndex >= 0) skipIdx = w->continuationIndex;
+  };
+  // Words are stored in visual order per row. RTL rows read right-to-left,
+  // i.e. from the highest flat index down, so walk them reversed to keep the
+  // phrase in logical reading order. The no-space seam between visual pair
+  // (i, i+1) is recorded on words[i+1] regardless of walk direction.
+  for (int r = 0; r < static_cast<int>(rows.size()); r++) {
+    const int first = rows[r].firstWord;
+    const int last = first + static_cast<int>(rows[r].wordCount) - 1;
+    if (last < lo || first > hi) continue;
+    const int a = std::max(lo, first);
+    const int b = std::min(hi, last);
+    if (rowIsRtl(r)) {
+      for (int i = b; i >= a; i--) append(i, i < b && words[i + 1].joinWithoutSpaceBefore);
+    } else {
+      for (int i = a; i <= b; i++) append(i, words[i].joinWithoutSpaceBefore);
+    }
   }
   return phrase;
 }
@@ -239,25 +268,35 @@ bool WordSelectNavigator::handleNavigation(const MappedInputManager& input, cons
     changed = true;
   }
 
-  if (wordPrevPressed) {
-    if (currentWordInRow > 0) {
-      currentWordInRow--;
-    } else if (rowCount > 1) {
-      currentRow = (currentRow > 0) ? currentRow - 1 : rowCount - 1;
-      currentWordInRow = static_cast<int>(rows[currentRow].wordCount) - 1;
+  // Prev/next follow READING order. Rows store words in visual order, so on
+  // an RTL row "forward" means decreasing index (moving leftward); row
+  // transitions land on the logical first/last word of the new row, which is
+  // the visually-rightmost slot when that row is RTL.
+  const auto logicalStep = [&](const int dir) {
+    const int visualDir = rowIsRtl(currentRow) ? -dir : dir;
+    const int lastIdx = static_cast<int>(rows[currentRow].wordCount) - 1;
+    const int next = currentWordInRow + visualDir;
+    if (next >= 0 && next <= lastIdx) {
+      currentWordInRow = next;
+      return;
     }
+    if (dir > 0) {
+      currentRow = (currentRow < rowCount - 1) ? currentRow + 1 : 0;
+    } else {
+      currentRow = (currentRow > 0) ? currentRow - 1 : rowCount - 1;
+    }
+    const bool newRtl = rowIsRtl(currentRow);
+    const int newLast = static_cast<int>(rows[currentRow].wordCount) - 1;
+    currentWordInRow = (dir > 0) == newRtl ? std::max(0, newLast) : 0;
+  };
+
+  if (wordPrevPressed) {
+    logicalStep(-1);
     changed = true;
   }
 
   if (wordNextPressed) {
-    if (currentWordInRow < static_cast<int>(rows[currentRow].wordCount) - 1) {
-      currentWordInRow++;
-    } else if (rowCount > 1) {
-      currentRow = (currentRow < rowCount - 1) ? currentRow + 1 : 0;
-      currentWordInRow = 0;
-    } else {
-      currentWordInRow = 0;  // single-row wrap
-    }
+    logicalStep(+1);
     changed = true;
   }
 

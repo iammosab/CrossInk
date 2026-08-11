@@ -134,6 +134,8 @@ class WordSelectNavigator {
   // Join display text of words in range [fromIdx, toIdx] (inclusive, either order).
   // Returns raw joined string; caller should apply Dictionary::cleanWord() if needed.
   std::string buildPhrase(int fromIdx, int toIdx) const;
+  // True when the row's dominant direction is right-to-left (majority of words).
+  bool rowIsRtl(int row) const;
 
   // --- Multi-select support (shared by WordSelect and Definition activities) ---
 

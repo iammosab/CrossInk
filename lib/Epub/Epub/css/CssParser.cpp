@@ -420,6 +420,8 @@ void CssParser::parseDeclarationIntoStyle(std::string_view decl, CssStyle& style
 
   if (iequalsAscii(name, "text-align")) {
     style.textAlign = interpretAlignment(value);
+    const auto trimmedAlign = trimCssWhitespace(value);
+    style.logicalAlign = iequalsAscii(trimmedAlign, "start") ? 1 : (iequalsAscii(trimmedAlign, "end") ? 2 : 0);
     style.defined.textAlign = 1;
   } else if (iequalsAscii(name, "font-style")) {
     style.fontStyle = interpretFontStyle(value);

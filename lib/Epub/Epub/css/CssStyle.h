@@ -148,6 +148,9 @@ static_assert(sizeof(CssPropertyFlags) <= sizeof(uint32_t),
 // Length values are stored as CssLength (value + unit) for deferred resolution
 struct CssStyle {
   CssTextAlign textAlign = CssTextAlign::Left;
+  // text-align start/end annotation: 0 = physical value, 1 = start, 2 = end.
+  // Resolved against the block's direction at layout time.
+  uint8_t logicalAlign = 0;
   CssFontStyle fontStyle = CssFontStyle::Normal;
   CssFontWeight fontWeight = CssFontWeight::Normal;
   CssTextDecoration textDecoration = CssTextDecoration::None;
@@ -178,6 +181,7 @@ struct CssStyle {
   void applyOver(const CssStyle& base) {
     if (base.hasTextAlign()) {
       textAlign = base.textAlign;
+      logicalAlign = base.logicalAlign;
       defined.textAlign = 1;
     }
     if (base.hasFontStyle()) {

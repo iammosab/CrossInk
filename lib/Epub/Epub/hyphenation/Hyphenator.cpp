@@ -265,6 +265,11 @@ std::vector<Hyphenator::BreakInfo> Hyphenator::breakOffsets(const std::string& w
       needsHyphen = false;
     } else if (idx > 0 && utf8IsCjkBreakable(cps[idx - 1].value)) {
       needsHyphen = false;
+    } else if ((idx < cps.size() && utf8IsNoHyphenScript(cps[idx].value)) ||
+               (idx > 0 && utf8IsNoHyphenScript(cps[idx - 1].value))) {
+      // Arabic/Hebrew emergency splits (word wider than the line) must not
+      // fabricate a hyphen the orthography doesn't have.
+      needsHyphen = false;
     }
     breaks.push_back({byteOffsetForIndex(cps, idx), needsHyphen});
   }

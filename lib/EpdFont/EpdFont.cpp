@@ -101,12 +101,29 @@ static uint8_t lookupKernClass(const EpdKernClassEntry* entries, const uint16_t 
   return 0;
 }
 
-int8_t EpdFont::getKerning(const uint32_t leftCp, const uint32_t rightCp) const {
+namespace {
+// Hebrew/Arabic blocks plus their presentation forms — glyphs whose visual
+// order is the reverse of the kern table's logical pair order.
+inline bool isRtlKernCp(const uint32_t cp) {
+  return (cp >= 0x0590 && cp <= 0x06FF) || (cp >= 0x0750 && cp <= 0x077F) || (cp >= 0x08A0 && cp <= 0x08FF) ||
+         (cp >= 0xFB1D && cp <= 0xFDFF) || (cp >= 0xFE70 && cp <= 0xFEFF);
+}
+}  // namespace
+
+int8_t EpdFont::getKerning(uint32_t leftCp, uint32_t rightCp) const {
   if (utf8IsCjkBreakable(leftCp) || utf8IsCjkBreakable(rightCp)) {
     return 0;
   }
   if (!data->kernMatrix) {
     return 0;
+  }
+  // Kern pairs are extracted in the font's logical first->second order, but
+  // every caller walks the visual stream, where an RTL pair's left glyph is
+  // the logically-second one. Swap so the stored pair is found.
+  if (isRtlKernCp(leftCp) && isRtlKernCp(rightCp)) {
+    const uint32_t tmp = leftCp;
+    leftCp = rightCp;
+    rightCp = tmp;
   }
   const uint8_t lc = lookupKernClass(data->kernLeftClasses, data->kernLeftEntryCount, leftCp);
   if (lc == 0) return 0;

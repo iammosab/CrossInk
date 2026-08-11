@@ -36,8 +36,12 @@ constexpr size_t LAYOUT_ARENA_SLAB_BYTES = 4096;
 constexpr size_t INITIAL_TOKEN_VECTOR_RESERVE = 16;
 
 bool mayContainRtlBytes(const char* str) {
+  // Lead bytes that can start an RTL codepoint: 0xD6-0xDB (U+0580-06FF),
+  // 0xDD (Arabic Supplement U+0750-077F), 0xE0 (3-byte scripts incl. Arabic
+  // Extended-A U+08A0-08FF), 0xEF (presentation forms U+FB50-FEFF). 0xE0/0xEF
+  // over-match other scripts; false positives only cost a bidi pass.
   for (const auto* p = reinterpret_cast<const unsigned char*>(str); *p; ++p) {
-    if (*p >= 0xD6 && *p <= 0xDB) return true;
+    if ((*p >= 0xD6 && *p <= 0xDB) || *p == 0xDD || *p == 0xE0 || *p == 0xEF) return true;
   }
   return false;
 }
@@ -131,6 +135,40 @@ bool isNoBreakAfterCjkPunctuation(const uint32_t cp) {
       return true;
     default:
       return false;
+  }
+}
+
+// Arabic-script letter (base blocks the reader lays out; presentation forms
+// excluded — pre-shaped text carries its own joining).
+bool isArabicScriptLetter(const uint32_t cp) {
+  return (cp >= 0x0620 && cp <= 0x064A) || (cp >= 0x066E && cp <= 0x06D3) || (cp >= 0x0750 && cp <= 0x077F) ||
+         (cp >= 0x08A0 && cp <= 0x08FF);
+}
+
+// True when `cp` connects to the FOLLOWING letter (dual-joining), i.e. a style
+// boundary right after it would visibly sever the cursive stroke. Harakat are
+// joining-transparent: a trailing mark implies a mid-word letter, so treat it
+// as joining.
+bool arabicJoinsForward(const uint32_t cp) {
+  if (cp >= 0x064B && cp <= 0x0652) return true;  // harakat: transparent
+  if (!isArabicScriptLetter(cp)) return false;
+  switch (cp) {  // right-joining letters never connect to the next letter
+    case 0x0621:  // hamza
+    case 0x0622:  // alef madda
+    case 0x0623:  // alef hamza above
+    case 0x0624:  // waw hamza
+    case 0x0625:  // alef hamza below
+    case 0x0627:  // alef
+    case 0x0629:  // taa marbuta
+    case 0x062F:  // dal
+    case 0x0630:  // thal
+    case 0x0631:  // reh
+    case 0x0632:  // zain
+    case 0x0648:  // waw
+    case 0x0649:  // alef maqsura
+      return false;
+    default:
+      return true;
   }
 }
 
@@ -608,6 +646,24 @@ void ParsedText::addWord(std::string word, const EpdFontFamily::Style fontStyle,
     guideDotBeforeNextToken = true;
   }
 
+  // Cursive-joining preservation: markup that flips style mid-word (<b>جز</b>ء)
+  // arrives as glued runs that shape independently, visibly severing the
+  // connected stroke at the boundary. When the seam falls between Arabic
+  // letters that join across it, fold the new run into the previous token and
+  // keep that token's style — a mid-word style flip has no typographic meaning
+  // in a connected script, but the broken joint is always wrong. The size cap
+  // preserves the parser's MAX_WORD_SIZE oversize-token invariant.
+  constexpr size_t kMaxMergedArabicWordBytes = 180;
+  if (effectiveAttachToPrevious && !words.empty() && !word.empty() &&
+      words.back().size() + word.size() < kMaxMergedArabicWordBytes &&
+      arabicJoinsForward(lastCodepoint(words.back())) && isArabicScriptLetter(firstCodepoint(word))) {
+    words.back() += word;
+    if (wordStartsRtl) {
+      hasRtlWord = true;
+    }
+    return;
+  }
+
   if (auto breakOffsets = cjkCharacterBreakByteOffsets(word); !breakOffsets.empty()) {
     // CJK-heavy paragraphs can push hundreds of tiny tokens quickly when CSS toggles
     // inline styles. Reserve once up front to avoid repeated vector growth reallocations.
@@ -643,7 +699,11 @@ void ParsedText::addWord(std::string word, const EpdFontFamily::Style fontStyle,
   }
 
   // Already-bold text should stay fully bold; bionic splitting would make its suffix regular later.
-  if (!this->bionicReadingEnabled || (baseStyle & EpdFontFamily::BOLD) != 0) {
+  // Cursive RTL scripts are never bionic-split: the prefix and suffix shape as
+  // independent runs, which severs the joining mid-word on every Arabic word.
+  if (!this->bionicReadingEnabled || (baseStyle & EpdFontFamily::BOLD) != 0 ||
+      (mayContainRtlBytes(word.c_str()) &&
+       BidiUtils::startsWithRtl(word.c_str(), BidiUtils::RTL_PARAGRAPH_PROBE_DEPTH))) {
     pushToken(std::move(word), effectiveAttachToPrevious, effectiveNoSpaceBefore, baseStyle, 0, visibleTextOffset);
     if (wordStartsRtl) {
       hasRtlWord = true;
@@ -1546,10 +1606,18 @@ bool ParsedText::extractLine(Arena& scratchArena, const size_t breakIndex, const
   // Calculate spacing (account for indent reducing effective page width on first line)
   const int effectivePageWidth = pageWidth - firstLineIndent;
   const bool isLastLine = breakIndex == lineBreakIndices.size() - 1;
-  const CssTextAlign effectiveAlignment =
-      (blockStyle.isRtl && !blockStyle.textAlignDefined && blockStyle.alignment == CssTextAlign::Left)
-          ? CssTextAlign::Right
-          : blockStyle.alignment;
+  const CssTextAlign effectiveAlignment = [&] {
+    // text-align:start/end resolve against the block's FINAL direction, which
+    // may only be known here (auto-detected from the text when the EPUB
+    // carries no dir attribute or CSS direction).
+    if (blockStyle.alignmentLogical && blockStyle.isRtl) {
+      return blockStyle.alignmentLogicalStart ? CssTextAlign::Right : CssTextAlign::Left;
+    }
+    if (blockStyle.isRtl && !blockStyle.textAlignDefined && blockStyle.alignment == CssTextAlign::Left) {
+      return CssTextAlign::Right;
+    }
+    return blockStyle.alignment;
+  }();
 
   // Keep the visual overhang of edge ruby groups inside the page margins.
   const int spareSpace = effectivePageWidth - extraStartOffset - extraEndOffset - lineWordWidthSum - totalNaturalGaps;

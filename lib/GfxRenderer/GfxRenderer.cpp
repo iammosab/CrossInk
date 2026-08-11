@@ -72,7 +72,9 @@ const char* resolveVisualText(const char* text, std::string& visualBuffer, BidiU
 // the logical codepoints — otherwise every RTL word measurement misses the fast
 // path and falls through to onGlyphMiss(), which opens the .cpfont and reads
 // glyph metadata + bitmap into the 8-slot overflow ring, once per glyph.
-// Tokens without RTL lead bytes (0xD6-0xDB) are skipped with a byte scan, so
+// Tokens without RTL-capable lead bytes (0xD6-0xDB Hebrew/Arabic, 0xDD Arabic
+// Supplement, 0xE0 three-byte scripts incl. Arabic Extended-A, 0xEF
+// presentation forms) are skipped with a byte scan, so
 // pure-LTR text pays almost nothing.
 template <typename Sink>
 void forEachShapedRtlToken(const char* text, std::string& tokenScratch, std::string& visualScratch, Sink&& sink) {
@@ -84,7 +86,7 @@ void forEachShapedRtlToken(const char* text, std::string& tokenScratch, std::str
     bool hasRtlBytes = false;
     while (*p && !isBreak(*p)) {
       const auto b = static_cast<unsigned char>(*p);
-      hasRtlBytes = hasRtlBytes || (b >= 0xD6 && b <= 0xDB);
+      hasRtlBytes = hasRtlBytes || (b >= 0xD6 && b <= 0xDB) || b == 0xDD || b == 0xE0 || b == 0xEF;
       ++p;
     }
     if (!hasRtlBytes) continue;
@@ -1016,7 +1018,7 @@ const char* resolveVisualText(const char* text, std::string& visualBuffer, const
   if (baseDir != BidiUtils::BidiBaseDir::RTL) {
     bool hasRtlBytes = false;
     for (const unsigned char* q = reinterpret_cast<const unsigned char*>(text); *q; ++q) {
-      if (*q >= 0xD6 && *q <= 0xDB) {
+      if ((*q >= 0xD6 && *q <= 0xDB) || *q == 0xDD || *q == 0xE0 || *q == 0xEF) {
         hasRtlBytes = true;
         break;
       }

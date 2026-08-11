@@ -131,7 +131,13 @@ bool ClippingsManager::saveClipping(const std::string& bookTitle, const std::str
   location += "\n";
 
   static constexpr size_t MAX_TEXT_BYTES = 2000;
-  const size_t textLen = std::min(selectedText.size(), MAX_TEXT_BYTES);
+  size_t textLen = std::min(selectedText.size(), MAX_TEXT_BYTES);
+  // Back the cap off to a codepoint boundary: cutting inside a multi-byte
+  // UTF-8 sequence (2 bytes per Arabic letter) would emit a broken tail.
+  while (textLen > 0 && textLen < selectedText.size() &&
+         (static_cast<unsigned char>(selectedText[textLen]) & 0xC0) == 0x80) {
+    textLen--;
+  }
   static constexpr char separator[] = "\n==========\n";
 
   std::string buffer;

@@ -29,6 +29,10 @@ struct BlockStyle {
   int16_t textIndent = 0;
   bool textIndentDefined = false;  // true if text-indent was explicitly set in CSS
   bool textAlignDefined = false;   // true if text-align was explicitly set in CSS
+  // text-align was the logical start/end keyword: re-resolve against the
+  // final (possibly auto-detected) direction at layout time.
+  bool alignmentLogical = false;
+  bool alignmentLogicalStart = false;
   bool isRtl = false;              // true if resolved direction is RTL
   bool directionDefined = false;   // true if direction was explicitly set in CSS/HTML
   bool pageBreakBefore = false;
@@ -136,6 +140,10 @@ struct BlockStyle {
       blockStyle.textIndentDefined = true;
     }
     blockStyle.textAlignDefined = cssStyle.hasTextAlign();
+    if (cssStyle.hasTextAlign() && cssStyle.logicalAlign != 0) {
+      blockStyle.alignmentLogical = true;
+      blockStyle.alignmentLogicalStart = cssStyle.logicalAlign == 1;
+    }
     // User setting overrides CSS, unless "Book's Style" alignment setting is selected
     if (paragraphAlignment == CssTextAlign::None) {
       blockStyle.alignment = blockStyle.textAlignDefined ? cssStyle.textAlign : CssTextAlign::Justify;

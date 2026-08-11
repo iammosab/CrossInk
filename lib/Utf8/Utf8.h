@@ -38,6 +38,17 @@ int utf8SafeTruncateBuffer(const char* buf, int len);
 // Returns true for CJK characters that allow line breaks on either side without hyphenation.
 // Covers CJK Unified Ideographs, Hiragana, Katakana, Hangul Syllables, CJK punctuation,
 // and fullwidth forms — the ranges where word boundaries are implicit per character.
+// Scripts that never take a visible hyphen at a forced break: Arabic-script
+// blocks (cursive; hyphenation does not exist in the orthography) and Hebrew.
+// Emergency breaks of over-wide words in these scripts must be bare splits.
+inline bool utf8IsNoHyphenScript(const uint32_t cp) {
+  return (cp >= 0x0590 && cp <= 0x06FF)        // Hebrew + Arabic
+         || (cp >= 0x0750 && cp <= 0x077F)     // Arabic Supplement
+         || (cp >= 0x08A0 && cp <= 0x08FF)     // Arabic Extended-A
+         || (cp >= 0xFB1D && cp <= 0xFDFF)     // Hebrew/Arabic Presentation Forms A
+         || (cp >= 0xFE70 && cp <= 0xFEFF);    // Arabic Presentation Forms B
+}
+
 inline bool utf8IsCjkBreakable(const uint32_t cp) {
   return (cp >= 0x1100 && cp <= 0x11FF)        // Hangul Jamo
          || (cp >= 0x3000 && cp <= 0x303F)     // CJK Symbols and Punctuation
