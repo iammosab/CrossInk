@@ -63,6 +63,12 @@ class HalClock {
   bool formatDate(char* buf, size_t bufSize, uint8_t utcOffsetQuarterHoursBiased = 48,
                   DateFormat dateFormat = MONTH_DAY_YEAR_LONG, char numericSeparator = '/') const;
 
+  // Month names for the *_LONG formats come from the app through this hook so
+  // the HAL stays free of the i18n layer; without a provider the built-in
+  // English tables are used. monthIndex is 1..12.
+  using MonthNameProvider = const char* (*)(uint8_t monthIndex, bool fullName);
+  void setMonthNameProvider(MonthNameProvider provider) { monthNameProvider_ = provider; }
+
   // Sync the RTC from an NTP server. Requires WiFi to be connected.
   // Blocks for up to ~5s while waiting for SNTP response.
   // Returns true if the RTC was successfully updated.
@@ -78,4 +84,5 @@ class HalClock {
   bool getDate(uint16_t& year, uint8_t& month, uint8_t& day, uint8_t& hour, uint8_t& minute) const;
   bool writeDateTimeToRTC(uint16_t year, uint8_t month, uint8_t day, uint8_t weekday, uint8_t hour, uint8_t minute,
                           uint8_t second);
+  MonthNameProvider monthNameProvider_ = nullptr;
 };

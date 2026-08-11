@@ -672,8 +672,8 @@ void renderEditBookDatesPage(GfxRenderer& renderer, const MappedInputManager* ma
 #endif
   const int fieldStartX = cardX + (std::max(totalFieldW, fieldAreaW) - totalFieldW) / 2;
 
-  char monthBuf[8];
-  char dayBuf[8];
+  char monthBuf[20];  // UTF-8 month names
+  char dayBuf[20];
   char yearBuf[8];
 
   drawCenteredLabel(renderer, UI_10_FONT_ID, cardX, cardW, cardY + 24, tr(STR_STATS_START_DATE), true);

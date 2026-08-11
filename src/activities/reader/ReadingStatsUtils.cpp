@@ -1,12 +1,18 @@
 #include "ReadingStatsUtils.h"
 
 #include <HalClock.h>
+#include <I18n.h>
 
 #include "CrossPointSettings.h"
 
 namespace {
-constexpr const char* MONTH_NAMES[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+const char* statsMonthName(const uint8_t month) {
+  static constexpr StrId kMonths[12] = {StrId::STR_MONTH_JAN, StrId::STR_MONTH_FEB, StrId::STR_MONTH_MAR,
+                                        StrId::STR_MONTH_APR, StrId::STR_MONTH_MAY, StrId::STR_MONTH_JUN,
+                                        StrId::STR_MONTH_JUL, StrId::STR_MONTH_AUG, StrId::STR_MONTH_SEP,
+                                        StrId::STR_MONTH_OCT, StrId::STR_MONTH_NOV, StrId::STR_MONTH_DEC};
+  return I18N.get(kMonths[month >= 1 && month <= 12 ? month - 1 : 0]);
+}
 
 bool isBitSet(const std::array<uint8_t, READING_HISTORY_BYTES>& bits, const size_t bitIndex) {
   if (bitIndex >= READING_HISTORY_DAYS) {
@@ -292,7 +298,7 @@ void formatReadingStatsShortDate(const ReadingStatsDate& date, char* buf, const 
     snprintf(buf, len, "-");
     return;
   }
-  snprintf(buf, len, "%s %u", MONTH_NAMES[date.month - 1], static_cast<unsigned>(date.day));
+  snprintf(buf, len, "%s %u", statsMonthName(date.month), static_cast<unsigned>(date.day));
 }
 
 void formatReadingStatsMonthToken(const ReadingStatsDate& date, char* buf, const size_t len) {
@@ -303,7 +309,7 @@ void formatReadingStatsMonthToken(const ReadingStatsDate& date, char* buf, const
     snprintf(buf, len, "-");
     return;
   }
-  snprintf(buf, len, "%s", MONTH_NAMES[date.month - 1]);
+  snprintf(buf, len, "%s", statsMonthName(date.month));
 }
 
 void formatCompactReadingDuration(const uint32_t seconds, char* buf, const size_t len) {

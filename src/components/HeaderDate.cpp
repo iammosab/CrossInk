@@ -54,7 +54,7 @@ bool formatHeaderDate(char* buf, const size_t len) {
 }  // namespace
 
 int headerDateReservedWidth(const GfxRenderer& renderer) {
-  char dateBuf[13];
+  char dateBuf[40];  // Translated month names (UTF-8 Arabic etc.) outgrow the old 13-byte ASCII bound.
   if (!formatHeaderDate(dateBuf, sizeof(dateBuf))) return 0;
 
   return renderer.getTextWidth(UI_10_FONT_ID, dateBuf) + kHeaderDateRightInset;
@@ -77,7 +77,7 @@ void drawHeaderDateAtLineBottom(const GfxRenderer& renderer, const int pageWidth
 }
 
 void drawHeaderDateAtBaseline(const GfxRenderer& renderer, const int pageWidth, const int baselineY) {
-  char dateBuf[13];
+  char dateBuf[40];  // Translated month names (UTF-8 Arabic etc.) outgrow the old 13-byte ASCII bound.
   if (!formatHeaderDate(dateBuf, sizeof(dateBuf))) return;
 
   constexpr int dateFontId = UI_10_FONT_ID;

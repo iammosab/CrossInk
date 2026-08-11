@@ -194,9 +194,11 @@ bool HalClock::formatDate(char* buf, size_t bufSize, uint8_t utcOffsetQuarterHou
   const unsigned int displayDay = day;
   const unsigned int displayYear = year;
   const char separator = numericSeparator == '.' || numericSeparator == '-' ? numericSeparator : '/';
+  const char* monthAbbr = monthNameProvider_ ? monthNameProvider_(month, false) : kMonthNames[month - 1];
+  const char* monthFull = monthNameProvider_ ? monthNameProvider_(month, true) : kFullMonthNames[month - 1];
   switch (dateFormat) {
     case DAY_MONTH_YEAR_LONG:
-      snprintf(buf, bufSize, "%02u %s %u", displayDay, kMonthNames[month - 1], displayYear);
+      snprintf(buf, bufSize, "%02u %s %u", displayDay, monthAbbr, displayYear);
       break;
     case MONTH_DAY_YEAR_NUMERIC:
       snprintf(buf, bufSize, "%02u%c%02u%c%u", displayMonth, separator, displayDay, separator, displayYear);
@@ -214,14 +216,14 @@ bool HalClock::formatDate(char* buf, size_t bufSize, uint8_t utcOffsetQuarterHou
       snprintf(buf, bufSize, "%02u%c%02u", displayDay, separator, displayMonth);
       break;
     case MONTH_DAY_LONG:
-      snprintf(buf, bufSize, "%s %02u", kFullMonthNames[month - 1], displayDay);
+      snprintf(buf, bufSize, "%s %02u", monthFull, displayDay);
       break;
     case DAY_MONTH_LONG:
-      snprintf(buf, bufSize, "%02u %s", displayDay, kFullMonthNames[month - 1]);
+      snprintf(buf, bufSize, "%02u %s", displayDay, monthFull);
       break;
     case MONTH_DAY_YEAR_LONG:
     default:
-      snprintf(buf, bufSize, "%s %02u, %u", kMonthNames[month - 1], displayDay, displayYear);
+      snprintf(buf, bufSize, "%s %02u, %u", monthAbbr, displayDay, displayYear);
       break;
   }
   return true;

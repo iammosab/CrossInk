@@ -878,6 +878,23 @@ void setup() {
   Storage.installDateTimeCallback(&SETTINGS.clockUtcOffsetQ);
   APP_STATE.loadFromFile();
   I18N.setLanguage(static_cast<Language>(SETTINGS.language));
+  // Header dates show translated month names; the HAL stays i18n-free by
+  // pulling them through this hook. tr() reads the live language, so a
+  // language change needs no re-registration.
+  halClock.setMonthNameProvider([](const uint8_t monthIndex, const bool fullName) -> const char* {
+    static constexpr StrId kAbbr[12] = {StrId::STR_MONTH_JAN, StrId::STR_MONTH_FEB, StrId::STR_MONTH_MAR,
+                                        StrId::STR_MONTH_APR, StrId::STR_MONTH_MAY, StrId::STR_MONTH_JUN,
+                                        StrId::STR_MONTH_JUL, StrId::STR_MONTH_AUG, StrId::STR_MONTH_SEP,
+                                        StrId::STR_MONTH_OCT, StrId::STR_MONTH_NOV, StrId::STR_MONTH_DEC};
+    static constexpr StrId kFull[12] = {StrId::STR_MONTH_FULL_JAN, StrId::STR_MONTH_FULL_FEB,
+                                        StrId::STR_MONTH_FULL_MAR, StrId::STR_MONTH_FULL_APR,
+                                        StrId::STR_MONTH_FULL_MAY, StrId::STR_MONTH_FULL_JUN,
+                                        StrId::STR_MONTH_FULL_JUL, StrId::STR_MONTH_FULL_AUG,
+                                        StrId::STR_MONTH_FULL_SEP, StrId::STR_MONTH_FULL_OCT,
+                                        StrId::STR_MONTH_FULL_NOV, StrId::STR_MONTH_FULL_DEC};
+    const uint8_t idx = monthIndex >= 1 && monthIndex <= 12 ? monthIndex - 1 : 0;
+    return I18N.get(fullName ? kFull[idx] : kAbbr[idx]);
+  });
   if (!isNetworkResume) {
     RECENT_BOOKS.loadFromFile();
     logBootHeap("settings and recent books loaded");
