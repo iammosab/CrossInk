@@ -16,7 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.RELEASE_PAT }}
+          # Fork-friendly: fall back to the workflow token when no PAT is configured.
+          token: ${{ secrets.RELEASE_PAT || github.token }}
           submodules: recursive
           fetch-depth: 0
 
@@ -79,8 +80,8 @@ jobs:
           CROSSINK_SIGNING_SSH_KEY: ${{ secrets.CROSSINK_SIGNING_SSH_KEY }}
         run: |
           if [ -z "$CROSSINK_SIGNING_SSH_KEY" ]; then
-            echo "::error::CROSSINK_SIGNING_SSH_KEY is not set"
-            exit 1
+            echo "::notice::CROSSINK_SIGNING_SSH_KEY is not set; skipping OTA catalog publish (fork build)"
+            exit 0
           fi
 
           install -m 700 -d ~/.ssh
@@ -88,8 +89,8 @@ jobs:
           chmod 600 ~/.ssh/crossink_actions_signing
           ssh-keygen -y -f ~/.ssh/crossink_actions_signing > ~/.ssh/crossink_actions_signing.pub
 
-          git config user.name "uxjulia"
-          git config user.email "julia@uxj.io"
+          git config user.name "Moussaab Waziz"
+          git config user.email "wazizmosab@gmail.com"
           git config gpg.format ssh
           git config user.signingkey "$HOME/.ssh/crossink_actions_signing.pub"
 
@@ -108,7 +109,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          token: ${{ secrets.RELEASE_PAT }}
+          token: ${{ secrets.RELEASE_PAT || github.token }}
           tag_name: v${{ env.RELEASE_VERSION }}
           target_commitish: ${{ github.sha }}
           draft: true
