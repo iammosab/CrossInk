@@ -425,6 +425,65 @@ DictionaryFontActivation SdCardFontSystem::activateDictionaryFont(GfxRenderer& r
   return {readerFontId, false};
 }
 
+
+void SdCardFontSystem::applyScriptFontSwitch(GfxRenderer& renderer, const bool nowRtl) {
+  // Swap the active selection with the other-script slot so each script class
+  // remembers its own font choice across language switches.
+  {
+    const uint8_t tmpFamily = SETTINGS.fontFamily;
+    SETTINGS.fontFamily = SETTINGS.altScriptFontFamily;
+    SETTINGS.altScriptFontFamily = tmpFamily;
+    char tmpName[sizeof(SETTINGS.sdFontFamilyName)];
+    memcpy(tmpName, SETTINGS.sdFontFamilyName, sizeof(tmpName));
+    memcpy(SETTINGS.sdFontFamilyName, SETTINGS.altScriptSdFontFamilyName, sizeof(SETTINGS.sdFontFamilyName));
+    memcpy(SETTINGS.altScriptSdFontFamilyName, tmpName, sizeof(SETTINGS.altScriptSdFontFamilyName));
+  }
+  ensureLoaded(renderer);
+
+  if (!nowRtl) {
+    // Every built-in and SD family covers Latin, so the swapped-in choice
+    // (or the built-in default when the slot was empty) is always usable.
+    return;
+  }
+
+  // RTL: verify the swapped-in reader font can actually render Arabic; a
+  // first-time switch (empty slot) or an uninstalled family cannot.
+  const auto coversArabic = [&]() {
+    const auto it = renderer.getFontMap().find(SETTINGS.getReaderFontId());
+    return it != renderer.getFontMap().end() && it->second.hasCodepoint(0x0628);
+  };
+  if (coversArabic()) return;
+
+  // Probe the known Arabic families first, then anything else installed.
+  ensureRegistry();
+  const auto tryFamily = [&](const char* name) {
+    if (!registry_.findFamily(name)) return false;
+    strncpy(SETTINGS.sdFontFamilyName, name, sizeof(SETTINGS.sdFontFamilyName) - 1);
+    SETTINGS.sdFontFamilyName[sizeof(SETTINGS.sdFontFamilyName) - 1] = '\0';
+    ensureLoaded(renderer);
+    return coversArabic();
+  };
+  static constexpr const char* kKnownArabic[] = {"NotoNaskhArabic", "Amiri"};
+  for (const char* name : kKnownArabic) {
+    if (tryFamily(name)) {
+      LOG_INF("SDFS", "Language switch: selected Arabic font %s", name);
+      return;
+    }
+  }
+  for (const auto& family : registry_.getFamilies()) {
+    if (tryFamily(family.name.c_str())) {
+      LOG_INF("SDFS", "Language switch: selected Arabic-capable font %s", family.name.c_str());
+      return;
+    }
+  }
+  // Nothing Arabic-capable installed: fall back to the built-in default so
+  // the selection stays valid; book text will use replacement glyphs until
+  // an Arabic font is installed.
+  SETTINGS.sdFontFamilyName[0] = '\0';
+  ensureLoaded(renderer);
+  LOG_ERR("SDFS", "Language switch: no Arabic-capable font installed");
+}
+
 int SdCardFontSystem::restoreReaderFont(GfxRenderer& renderer) {
   const char* familyName = SETTINGS.sdFontFamilyName;
   if (!familyName || familyName[0] == '\0') {

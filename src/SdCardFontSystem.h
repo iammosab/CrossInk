@@ -66,6 +66,12 @@ class SdCardFontSystem {
   // Restore the saved reader font after a dictionary lookup and return its ID.
   int restoreReaderFont(GfxRenderer& renderer);
 
+  // The UI language crossed the RTL/Latin script boundary: swap the active
+  // reader-font selection with the stored other-script slot, and when the
+  // swapped-in choice cannot render the new script, probe installed families
+  // for coverage (first switch, or the remembered font was uninstalled).
+  void applyScriptFontSwitch(GfxRenderer& renderer, bool nowRtl);
+
   /// Access the registry (e.g. for settings UI to enumerate available fonts).
   const SdCardFontRegistry& registry() const { return registry_; }
 

@@ -7,6 +7,7 @@
 #include <iterator>
 
 #include "CrossPointSettings.h"
+#include "SdCardFontSystem.h"
 #include "I18nKeys.h"
 #include "MappedInputManager.h"
 #include "components/TouchHeaderBackButton.h"
@@ -43,11 +44,19 @@ void LanguageSelectActivity::onExit() { Activity::onExit(); }
 
 void LanguageSelectActivity::handleSelection() {
   const uint8_t langIndex = SORTED_LANGUAGE_INDICES[selectedIndex];
+  const bool wasRtl = I18N.isRtl();
   {
     RenderLock lock(*this);
     I18N.setLanguage(static_cast<Language>(langIndex));
   }
   SETTINGS.language = langIndex;
+  // Crossing the RTL/Latin script boundary swaps in that script's remembered
+  // reader font (probing installed families on a first switch), so Arabic
+  // menus and books get an Arabic-capable font automatically and switching
+  // back restores the previous Latin choice.
+  if (wasRtl != I18N.isRtl()) {
+    sdFontSystem.applyScriptFontSwitch(renderer, I18N.isRtl());
+  }
   SETTINGS.saveToFile();
   onBack();
 }

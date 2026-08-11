@@ -449,6 +449,11 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   uint8_t epubRenderMode = 0;
   // SD card font family name, including optional range suffix (empty = use built-in fontFamily)
   char sdFontFamilyName[64] = "";
+  // The OTHER script class's last reader-font selection (RTL vs Latin).
+  // Swapped with the active fontFamily/sdFontFamilyName when the UI language
+  // crosses the script boundary, so each script remembers its own font.
+  uint8_t altScriptFontFamily = 0;
+  char altScriptSdFontFamilyName[64] = "";
   // Global dictionary SD-card font (empty = use the reader font).
   char dictionarySdFontFamilyName[64] = "";
   // Zero follows the active reader size.

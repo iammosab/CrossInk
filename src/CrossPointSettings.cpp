@@ -400,6 +400,8 @@ void CrossPointSettings::toJson(JsonDocument& doc) const {
   doc["readerFrontButtonRight"] = readerFrontButtonRight;
   doc["fontFamily"] = fontFamily;
   if (sdFontFamilyName[0] != '\0') doc["sdFontFamilyName"] = sdFontFamilyName;
+  if (altScriptSdFontFamilyName[0] != '\0') doc["altScriptSdFontFamilyName"] = altScriptSdFontFamilyName;
+  if (altScriptFontFamily != 0) doc["altScriptFontFamily"] = altScriptFontFamily;
   if (dictionarySdFontFamilyName[0] != '\0') doc["dictionaryFont"] = dictionarySdFontFamilyName;
   doc["dictionaryFontSize"] = dictionaryFontPointSize;
   doc["language"] = (language < getLanguageCount()) ? LANGUAGE_CODES[language] : "EN";
@@ -566,6 +568,10 @@ bool CrossPointSettings::fromJson(JsonVariantConst doc) {
   const char* sdFamily = doc["sdFontFamilyName"] | "";
   strncpy(sdFontFamilyName, sdFamily, sizeof(sdFontFamilyName) - 1);
   sdFontFamilyName[sizeof(sdFontFamilyName) - 1] = '\0';
+  const char* altSdFamily = doc["altScriptSdFontFamilyName"] | "";
+  strncpy(altScriptSdFontFamilyName, altSdFamily, sizeof(altScriptSdFontFamilyName) - 1);
+  altScriptSdFontFamilyName[sizeof(altScriptSdFontFamilyName) - 1] = '\0';
+  altScriptFontFamily = doc["altScriptFontFamily"] | 0;
   const char* dictionaryFamily = doc["dictionaryFont"] | "";
   strncpy(dictionarySdFontFamilyName, dictionaryFamily, sizeof(dictionarySdFontFamilyName) - 1);
   dictionarySdFontFamilyName[sizeof(dictionarySdFontFamilyName) - 1] = '\0';
