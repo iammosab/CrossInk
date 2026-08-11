@@ -1087,7 +1087,100 @@ std::string Dictionary::resolveAltForm(const std::string& word, const char* cach
 // Stemming
 // ---------------------------------------------------------------------------
 
+namespace {
+
+void appendUtf8(std::string& out, const uint32_t cp) {
+  if (cp < 0x80) {
+    out += static_cast<char>(cp);
+  } else if (cp < 0x800) {
+    out += static_cast<char>(0xC0 | (cp >> 6));
+    out += static_cast<char>(0x80 | (cp & 0x3F));
+  } else {
+    out += static_cast<char>(0xE0 | (cp >> 12));
+    out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+    out += static_cast<char>(0x80 | (cp & 0x3F));
+  }
+}
+
+bool containsArabic(const std::string& word) {
+  const auto* p = reinterpret_cast<const uint8_t*>(word.c_str());
+  uint32_t cp;
+  while ((cp = utf8NextCodepoint(&p))) {
+    if ((cp >= 0x0600 && cp <= 0x06FF) || (cp >= 0xFE70 && cp <= 0xFEFF)) return true;
+  }
+  return false;
+}
+
+// Dictionary keys are unvocalized base forms: strip harakat (U+064B-0652),
+// the superscript alef (U+0670), and tatweel (U+0640); optionally normalize
+// hamza-carrying alefs to bare alef and alef maqsura to yeh.
+std::string normalizeArabic(const std::string& word, const bool normalizeAlef, const bool normalizeYeh) {
+  std::string out;
+  out.reserve(word.size());
+  const auto* p = reinterpret_cast<const uint8_t*>(word.c_str());
+  uint32_t cp;
+  while ((cp = utf8NextCodepoint(&p))) {
+    if ((cp >= 0x064B && cp <= 0x0652) || cp == 0x0670 || cp == 0x0640) continue;
+    if (normalizeAlef && (cp == 0x0622 || cp == 0x0623 || cp == 0x0625 || cp == 0x0671)) cp = 0x0627;
+    if (normalizeYeh && cp == 0x0649) cp = 0x064A;
+    appendUtf8(out, cp);
+  }
+  return out;
+}
+
+// Count of codepoints, cheap guard so prefix stripping never leaves a stub.
+size_t utf8Codepoints(const std::string& s) {
+  const auto* p = reinterpret_cast<const uint8_t*>(s.c_str());
+  size_t n = 0;
+  while (utf8NextCodepoint(&p)) n++;
+  return n;
+}
+
+std::vector<std::string> arabicLookupVariants(const std::string& word) {
+  std::vector<std::string> variants;
+  variants.reserve(8);
+  const auto push = [&](std::string v) {
+    if (v.empty() || v == word) return;
+    if (std::find(variants.begin(), variants.end(), v) == variants.end()) variants.push_back(std::move(v));
+  };
+  const std::string stripped = normalizeArabic(word, false, false);
+  push(stripped);
+  const std::string alefNorm = normalizeArabic(word, true, false);
+  push(alefNorm);
+  const std::string fullNorm = normalizeArabic(word, true, true);
+  push(fullNorm);
+  // Attached particles: definite article and one-letter conjunctions or
+  // prepositions. Exact and normalized forms were already tried, so a false
+  // strip only costs a missed lookup, never a wrong hit on its own — the
+  // stripped form still has to exist as a headword.
+  static constexpr const char* kPrefixes[] = {"\xD9\x88\xD8\xA7\xD9\x84",  // وال
+                                              "\xD8\xA8\xD8\xA7\xD9\x84",  // بال
+                                              "\xD9\x83\xD8\xA7\xD9\x84",  // كال
+                                              "\xD9\x81\xD8\xA7\xD9\x84",  // فال
+                                              "\xD8\xA7\xD9\x84",          // ال
+                                              "\xD9\x84\xD9\x84",          // لل
+                                              "\xD9\x88",                  // و
+                                              "\xD9\x81",                  // ف
+                                              "\xD8\xA8",                  // ب
+                                              "\xD9\x84",                  // ل
+                                              "\xD9\x83"};                 // ك
+  for (const char* prefix : kPrefixes) {
+    const size_t plen = strlen(prefix);
+    if (fullNorm.size() > plen && fullNorm.compare(0, plen, prefix) == 0) {
+      std::string rest = fullNorm.substr(plen);
+      if (utf8Codepoints(rest) >= 2) push(std::move(rest));
+      break;  // longest matching prefix only
+    }
+  }
+  return variants;
+}
+
+}  // namespace
+
 std::vector<std::string> Dictionary::getStemVariants(const std::string& word) {
+  // Arabic gets normalization variants instead of morphology: vocalized or
+  // particle-prefixed words fall back to the unvocalized base headword.
+  if (containsArabic(word)) return arabicLookupVariants(word);
   // These are deliberately English morphology rules. Applying them to UTF-8
   // text can manufacture meaningless variants from another language, so
   // non-ASCII words use exact and StarDict synonym lookup only.

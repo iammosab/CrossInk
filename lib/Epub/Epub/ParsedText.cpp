@@ -84,6 +84,10 @@ bool isNoBreakBeforeCjkPunctuation(const uint32_t cp) {
     case 0x00BB:  // »
     case 0x2019:  // ’
     case 0x201D:  // ”
+    case 0x060C:  // ، Arabic comma
+    case 0x061B:  // ؛ Arabic semicolon
+    case 0x061F:  // ؟ Arabic question mark
+    case 0x06D4:  // ۔ Arabic full stop (Urdu)
     case 0x3001:  // 、
     case 0x3002:  // 。
     case 0x3009:  // 〉
