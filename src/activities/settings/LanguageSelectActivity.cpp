@@ -7,9 +7,9 @@
 #include <iterator>
 
 #include "CrossPointSettings.h"
-#include "SdCardFontSystem.h"
 #include "I18nKeys.h"
 #include "MappedInputManager.h"
+#include "SdCardFontSystem.h"
 #include "components/TouchHeaderBackButton.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"

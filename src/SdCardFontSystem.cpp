@@ -425,7 +425,6 @@ DictionaryFontActivation SdCardFontSystem::activateDictionaryFont(GfxRenderer& r
   return {readerFontId, false};
 }
 
-
 void SdCardFontSystem::applyScriptFontSwitch(GfxRenderer& renderer, const bool nowRtl) {
   // Swap the active selection with the other-script slot so each script class
   // remembers its own font choice across language switches.

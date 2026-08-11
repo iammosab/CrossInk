@@ -33,8 +33,8 @@ struct BlockStyle {
   // final (possibly auto-detected) direction at layout time.
   bool alignmentLogical = false;
   bool alignmentLogicalStart = false;
-  bool isRtl = false;              // true if resolved direction is RTL
-  bool directionDefined = false;   // true if direction was explicitly set in CSS/HTML
+  bool isRtl = false;             // true if resolved direction is RTL
+  bool directionDefined = false;  // true if direction was explicitly set in CSS/HTML
   bool pageBreakBefore = false;
   bool pageBreakAfter = false;
   // Set when this block was created by a <br> element. Used by startNewTextBlock to inject

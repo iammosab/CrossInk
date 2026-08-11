@@ -543,10 +543,9 @@ void BaseTheme::drawTabBar(const GfxRenderer& renderer, const Rect rect, const s
     const int textWidth =
         renderer.getTextWidth(UI_12_FONT_ID, tab.label, tab.selected ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR);
     const int tabX = rtl ? currentX - textWidth : currentX;
-    TouchRegistry::getInstance().add(
-        Rect{rtl ? tabX + 3 - BaseMetrics::values.tabSpacing : currentX - 3, rect.y,
-             textWidth + BaseMetrics::values.tabSpacing, rect.height},
-        static_cast<int>(i), TouchRegistry::Tab);
+    TouchRegistry::getInstance().add(Rect{rtl ? tabX + 3 - BaseMetrics::values.tabSpacing : currentX - 3, rect.y,
+                                          textWidth + BaseMetrics::values.tabSpacing, rect.height},
+                                     static_cast<int>(i), TouchRegistry::Tab);
 
     // Draw underline for selected tab
     if (tab.selected) {
@@ -928,9 +927,9 @@ void BaseTheme::drawStatusBar(GfxRenderer& renderer, const float bookProgress, c
       snprintf(progressStr, sizeof(progressStr), "%s%d/%d", estimatePrefix, currentPage, pageCount);
     }
 
-    char easternBuf[96];
     if (SETTINGS.easternArabicNumerals) {
       // ASCII digits become U+0660-0669 (2 bytes each); other bytes copy.
+      char easternBuf[96];
       size_t o = 0;
       for (const char* q = progressStr; *q != '\0' && o + 3 < sizeof(easternBuf); q++) {
         if (*q >= '0' && *q <= '9') {

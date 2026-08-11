@@ -259,8 +259,7 @@ void FontSelectionActivity::renderPreviewPane(int top, int height, int fontId, c
   // Fonts covering Arabic get an Arabic pangram: the Latin pangram exercises
   // none of their shaping and shows nothing of how books will actually look.
   const auto fontIt = renderer.getFontMap().find(fontId);
-  const bool arabicPreview =
-      fontIt != renderer.getFontMap().end() && fontIt->second.hasCodepoint(0x0628 /* beh */);
+  const bool arabicPreview = fontIt != renderer.getFontMap().end() && fontIt->second.hasCodepoint(0x0628 /* beh */);
   const char* previewText =
       I18N.get(arabicPreview ? StrId::STR_FONT_PREVIEW_TEXT_ARABIC : StrId::STR_FONT_PREVIEW_TEXT);
   // SD fonts stream glyphs from the card: build the advance table (including

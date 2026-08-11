@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Icon.h"
-
 #include "touchHeaderIcons.h"
 
 // Horizontal mirror of icon_back_32 (lucide: chevron-right) for RTL UI

@@ -13,8 +13,8 @@
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
-#include "activities/ActivityManager.h"
 #include "SdCardFontSystem.h"
+#include "activities/ActivityManager.h"
 #include "activities/reader/EpubReaderMenuActivity.h"
 #include "activities/reader/ReaderOptionsActivity.h"
 #include "activities/settings/FontSelectionActivity.h"

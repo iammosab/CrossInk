@@ -126,9 +126,9 @@ void Lyra3CoversTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
 
       int currentY = tileY + Lyra3CoversMetrics::values.homeCoverHeight + hPaddingInSelection + 5;
       for (const auto& line : titleLines) {
-        const int lineX = rtl ? tileX + tileWidth - hPaddingInSelection -
-                                    renderer.getTextWidth(SMALL_FONT_ID, line.c_str())
-                              : tileX + hPaddingInSelection;
+        const int lineX =
+            rtl ? tileX + tileWidth - hPaddingInSelection - renderer.getTextWidth(SMALL_FONT_ID, line.c_str())
+                : tileX + hPaddingInSelection;
         renderer.drawText(SMALL_FONT_ID, lineX, currentY, line.c_str(), true);
         currentY += titleLineHeight;
       }

@@ -1000,9 +1000,8 @@ void KeyboardEntryActivity::render(RenderLock&&) {
       (symbols || (inputType == InputType::Url && urlPanel)) ? tr(STR_KEY_MODE_ABC) : tr(STR_KEY_MODE_SYMBOLS);
   // The lang key shows where it leads: "EN" while on the native layout, the
   // language code while on QWERTY. Short codes always fit the 2-unit key.
-  props.langLabel = layoutId == fui::KeyboardLayoutId::QwertyEn
-                        ? LANGUAGE_CODES[static_cast<uint8_t>(I18N.getLanguage())]
-                        : "EN";
+  props.langLabel =
+      layoutId == fui::KeyboardLayoutId::QwertyEn ? LANGUAGE_CODES[static_cast<uint8_t>(I18N.getLanguage())] : "EN";
   props.inputMask = static_cast<uint16_t>(fui::InputTouch | fui::InputLongPress);
   props.selectedIndex = cursorMode ? -1 : static_cast<int16_t>(selectedLogicalIndex());
   props.labelText.font = fui::GfxRendererTarget::FONT_BODY;

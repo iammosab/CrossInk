@@ -524,8 +524,7 @@ void LyraTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std:
           Bitmap bitmap(file);
           if (bitmap.parseHeaders() == BmpReaderError::Ok) {
             coverWidth = bitmap.getWidth();
-            const int coverX =
-                rtl ? tileX + tileWidth - hPaddingInSelection - coverWidth : tileX + hPaddingInSelection;
+            const int coverX = rtl ? tileX + tileWidth - hPaddingInSelection - coverWidth : tileX + hPaddingInSelection;
             renderer.drawBitmap(bitmap, coverX, tileY + hPaddingInSelection, coverWidth,
                                 LyraMetrics::values.homeCoverHeight);
           } else {
@@ -591,8 +590,8 @@ void LyraTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std:
       return rtl ? textRight - renderer.getTextWidth(fontId, s, st) : textX;
     };
     for (const auto& line : titleLines) {
-      renderer.drawText(UI_12_FONT_ID, alignedX(UI_12_FONT_ID, line.c_str(), EpdFontFamily::BOLD), titleY,
-                        line.c_str(), true, EpdFontFamily::BOLD);
+      renderer.drawText(UI_12_FONT_ID, alignedX(UI_12_FONT_ID, line.c_str(), EpdFontFamily::BOLD), titleY, line.c_str(),
+                        true, EpdFontFamily::BOLD);
       titleY += titleLineHeight;
     }
     if (!book.author.empty()) {
@@ -645,9 +644,9 @@ void LyraTheme::drawEmptyRecents(const GfxRenderer& renderer, const Rect rect) c
   const bool rtl = I18N.isRtl();
   const char* headline = tr(STR_NO_OPEN_BOOK);
   const char* hint = tr(STR_START_READING);
-  const int headlineX = rtl ? rect.x + rect.width - padding -
-                                  renderer.getTextWidth(UI_12_FONT_ID, headline, EpdFontFamily::BOLD)
-                            : rect.x + padding;
+  const int headlineX =
+      rtl ? rect.x + rect.width - padding - renderer.getTextWidth(UI_12_FONT_ID, headline, EpdFontFamily::BOLD)
+          : rect.x + padding;
   const int hintX = rtl ? rect.x + rect.width - padding - renderer.getTextWidth(UI_10_FONT_ID, hint) : rect.x + padding;
   renderer.drawText(UI_12_FONT_ID, headlineX, rect.y + rect.height / 2 - renderer.getLineHeight(UI_12_FONT_ID) - 2,
                     headline, true, EpdFontFamily::BOLD);

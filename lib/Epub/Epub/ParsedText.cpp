@@ -156,7 +156,7 @@ bool isArabicScriptLetter(const uint32_t cp) {
 bool arabicJoinsForward(const uint32_t cp) {
   if (cp >= 0x064B && cp <= 0x0652) return true;  // harakat: transparent
   if (!isArabicScriptLetter(cp)) return false;
-  switch (cp) {  // right-joining letters never connect to the next letter
+  switch (cp) {   // right-joining letters never connect to the next letter
     case 0x0621:  // hamza
     case 0x0622:  // alef madda
     case 0x0623:  // alef hamza above
