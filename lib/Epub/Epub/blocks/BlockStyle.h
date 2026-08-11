@@ -140,13 +140,15 @@ struct BlockStyle {
       blockStyle.textIndentDefined = true;
     }
     blockStyle.textAlignDefined = cssStyle.hasTextAlign();
-    if (cssStyle.hasTextAlign() && cssStyle.logicalAlign != 0) {
-      blockStyle.alignmentLogical = true;
-      blockStyle.alignmentLogicalStart = cssStyle.logicalAlign == 1;
-    }
     // User setting overrides CSS, unless "Book's Style" alignment setting is selected
     if (paragraphAlignment == CssTextAlign::None) {
       blockStyle.alignment = blockStyle.textAlignDefined ? cssStyle.textAlign : CssTextAlign::Justify;
+      // Only when the publisher's value is actually in effect does its
+      // start/end need direction-aware re-resolution at layout time.
+      if (blockStyle.textAlignDefined && cssStyle.logicalAlign != 0) {
+        blockStyle.alignmentLogical = true;
+        blockStyle.alignmentLogicalStart = cssStyle.logicalAlign == 1;
+      }
     } else {
       blockStyle.alignment = paragraphAlignment;
     }
