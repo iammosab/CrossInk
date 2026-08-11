@@ -476,12 +476,12 @@ void SdCardFontSystem::applyScriptFontSwitch(GfxRenderer& renderer, const bool n
       return;
     }
   }
-  // Nothing Arabic-capable installed: fall back to the built-in default so
-  // the selection stays valid; book text will use replacement glyphs until
-  // an Arabic font is installed.
+  // Nothing Arabic-capable on the SD card: the built-in Noto Naskh covers
+  // Arabic out of the box.
   SETTINGS.sdFontFamilyName[0] = '\0';
+  SETTINGS.fontFamily = CrossPointSettings::NOTONASKH;
   ensureLoaded(renderer);
-  LOG_ERR("SDFS", "Language switch: no Arabic-capable font installed");
+  LOG_INF("SDFS", "Language switch: using built-in Noto Naskh");
 }
 
 int SdCardFontSystem::restoreReaderFont(GfxRenderer& renderer) {

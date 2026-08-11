@@ -104,6 +104,7 @@ void FontSelectionActivity::onEnter() {
 
   fonts_.push_back({I18N.get(StrId::STR_LEXEND_DECA), true, 0});
   fonts_.push_back({I18N.get(StrId::STR_BITTER), true, 1});
+  fonts_.push_back({I18N.get(StrId::STR_NOTONASKH), true, 2});
 
   if (registry_) {
     const auto& families = registry_->getFamilies();

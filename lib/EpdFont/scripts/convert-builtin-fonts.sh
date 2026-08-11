@@ -199,6 +199,32 @@ generate_family() {
   done
 }
 
+
+# Built-in Arabic reading font — Noto Naskh Arabic (regular/bold only; the
+# family registers its regular/bold data in the italic slots too). No
+# emoji/symbol/CJK fallback stack: kept lean for flash. Interval set = the
+# default Latin set + Arabic base block + the curated Farsi/Urdu presentation
+# forms + Forms-B (matches the shaper's output).
+generate_notonaskh() {
+  local output_dir="$1"
+  for size in 10 12 14 16; do
+    for style in Regular Bold; do
+      local style_lower
+      style_lower="$(echo $style | tr '[:upper:]' '[:lower:]')"
+      local font_name="notonaskh_${size}_${style_lower}"
+      python fontconvert.py $font_name $size \
+        ../builtinFonts/source/NotoNaskhArabic/NotoNaskhArabic-${style}.ttf \
+        --additional-intervals 0x0600,0x06FF \
+        --additional-intervals 0xFB56,0xFB59 --additional-intervals 0xFB66,0xFB69 \
+        --additional-intervals 0xFB7A,0xFB7D --additional-intervals 0xFB88,0xFB95 \
+        --additional-intervals 0xFB9E,0xFB9F --additional-intervals 0xFBA6,0xFBB1 \
+        --additional-intervals 0xFBFC,0xFBFF --additional-intervals 0xFE70,0xFEFC \
+        "${READING_FONT_RENDER_ARGS[@]}" > "${output_dir}/${font_name}.h"
+      echo "Generated ${output_dir}/${font_name}.h"
+    done
+  done
+}
+
 generate_reading_variant() {
   local output_dir="$1"
   local include_fallbacks="$2"
@@ -209,6 +235,7 @@ generate_reading_variant() {
   generate_family lexenddeca LexendDeca LexendDeca "$output_dir" "$include_fallbacks" yes
   generate_family bitter Bitter Bitter "$output_dir" "$include_fallbacks" yes
   generate_family charein ChareInk7 ChareInk7 "$output_dir" "$include_fallbacks" no
+  generate_notonaskh "$output_dir"
   echo ""
   echo "${label} variants complete."
   echo ""

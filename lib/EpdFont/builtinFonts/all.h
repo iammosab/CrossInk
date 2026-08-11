@@ -26,6 +26,15 @@
 #include BUILTIN_READING_FONT_HEADER(bitter_16_italic)
 #include BUILTIN_READING_FONT_HEADER(bitter_16_regular)
 
+#include BUILTIN_READING_FONT_HEADER(notonaskh_10_bold)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_10_regular)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_12_bold)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_12_regular)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_14_bold)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_14_regular)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_16_bold)
+#include BUILTIN_READING_FONT_HEADER(notonaskh_16_regular)
+
 #include BUILTIN_READING_FONT_HEADER(lexenddeca_10_bold)
 #include BUILTIN_READING_FONT_HEADER(lexenddeca_10_bolditalic)
 #include BUILTIN_READING_FONT_HEADER(lexenddeca_10_italic)

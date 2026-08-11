@@ -322,6 +322,7 @@ uint8_t CrossPointSettings::legacyLineSpacingToPercent(const uint8_t legacyValue
   }
 
   switch (fontFamily) {
+    case NOTONASKH:  // Naskh's tall marks want Bitter-like line room
     case BITTER:
       switch (legacyValue) {
         case TIGHT:
@@ -1028,6 +1029,19 @@ int CrossPointSettings::getBuiltInReaderFontId() const {
           return BITTER_16_FONT_ID;
       }
       return getFallbackReaderFontIdForFamily(BITTER);
+    case NOTONASKH:
+      switch (effectiveSize) {
+        case TINY:
+          return NOTONASKH_10_FONT_ID;
+        case SMALL:
+          return NOTONASKH_12_FONT_ID;
+        case MEDIUM:
+        default:
+          return NOTONASKH_14_FONT_ID;
+        case LARGE:
+          return NOTONASKH_16_FONT_ID;
+      }
+      return getFallbackReaderFontIdForFamily(NOTONASKH);
   }
   return getFallbackReaderFontIdForFamily(static_cast<FONT_FAMILY>(fontFamily));
 }

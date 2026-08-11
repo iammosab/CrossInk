@@ -103,6 +103,15 @@ reading_font_id BITTER_18_FONT_ID \
 reading_font_id BITTER_20_FONT_ID \
   ./bitter_20_regular.h ./bitter_20_bold.h ./bitter_20_bolditalic.h ./bitter_20_italic.h
 
+reading_font_id NOTONASKH_10_FONT_ID \
+  ./notonaskh_10_regular.h ./notonaskh_10_bold.h
+reading_font_id NOTONASKH_12_FONT_ID \
+  ./notonaskh_12_regular.h ./notonaskh_12_bold.h
+reading_font_id NOTONASKH_14_FONT_ID \
+  ./notonaskh_14_regular.h ./notonaskh_14_bold.h
+reading_font_id NOTONASKH_16_FONT_ID \
+  ./notonaskh_16_regular.h ./notonaskh_16_bold.h
+
 # UI fonts — no emoji variant
 emit_hash_define UI_10_FONT_ID ./inter_10_regular.h ./inter_10_bold.h
 emit_hash_define UI_12_FONT_ID ./inter_12_regular.h ./inter_12_bold.h
@@ -118,6 +127,7 @@ for id in \
   CHAREINK_16_FONT_ID CHAREINK_18_FONT_ID CHAREINK_20_FONT_ID \
   BITTER_8_FONT_ID BITTER_9_FONT_ID BITTER_10_FONT_ID BITTER_12_FONT_ID BITTER_14_FONT_ID \
   BITTER_16_FONT_ID BITTER_18_FONT_ID BITTER_20_FONT_ID \
+  NOTONASKH_10_FONT_ID NOTONASKH_12_FONT_ID NOTONASKH_14_FONT_ID NOTONASKH_16_FONT_ID \
   UI_10_FONT_ID UI_12_FONT_ID SMALL_FONT_ID; do
   echo "static_assert(${id} != 0, \"Font ID collision with sentinel\");"
 done

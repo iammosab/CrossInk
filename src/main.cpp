@@ -176,6 +176,26 @@ EpdFont bitter16ItalicFont(&bitter_16_italic);
 EpdFont bitter16BoldItalicFont(&bitter_16_bolditalic);
 EpdFontFamily bitter16FontFamily(&bitter16RegularFont, &bitter16BoldFont, &bitter16ItalicFont, &bitter16BoldItalicFont);
 
+// Built-in Arabic reading font. Naskh has no italic tradition; the italic
+// slots reuse the regular/bold data so styled runs stay renderable without
+// extra flash.
+EpdFont notonaskh10RegularFont(&notonaskh_10_regular);
+EpdFont notonaskh10BoldFont(&notonaskh_10_bold);
+EpdFontFamily notonaskh10FontFamily(&notonaskh10RegularFont, &notonaskh10BoldFont, &notonaskh10RegularFont,
+                                    &notonaskh10BoldFont);
+EpdFont notonaskh12RegularFont(&notonaskh_12_regular);
+EpdFont notonaskh12BoldFont(&notonaskh_12_bold);
+EpdFontFamily notonaskh12FontFamily(&notonaskh12RegularFont, &notonaskh12BoldFont, &notonaskh12RegularFont,
+                                    &notonaskh12BoldFont);
+EpdFont notonaskh14RegularFont(&notonaskh_14_regular);
+EpdFont notonaskh14BoldFont(&notonaskh_14_bold);
+EpdFontFamily notonaskh14FontFamily(&notonaskh14RegularFont, &notonaskh14BoldFont, &notonaskh14RegularFont,
+                                    &notonaskh14BoldFont);
+EpdFont notonaskh16RegularFont(&notonaskh_16_regular);
+EpdFont notonaskh16BoldFont(&notonaskh_16_bold);
+EpdFontFamily notonaskh16FontFamily(&notonaskh16RegularFont, &notonaskh16BoldFont, &notonaskh16RegularFont,
+                                    &notonaskh16BoldFont);
+
 EpdFont smallFont(&inter_8_regular);
 EpdFontFamily smallFontFamily(&smallFont);
 
@@ -744,6 +764,10 @@ void setupDisplayAndFonts(const bool seamless = false, const bool loadReaderReso
   renderer.insertFont(BITTER_12_FONT_ID, bitter12FontFamily);
   renderer.insertFont(BITTER_14_FONT_ID, bitter14FontFamily);
   renderer.insertFont(BITTER_16_FONT_ID, bitter16FontFamily);
+  renderer.insertFont(NOTONASKH_10_FONT_ID, notonaskh10FontFamily);
+  renderer.insertFont(NOTONASKH_12_FONT_ID, notonaskh12FontFamily);
+  renderer.insertFont(NOTONASKH_14_FONT_ID, notonaskh14FontFamily);
+  renderer.insertFont(NOTONASKH_16_FONT_ID, notonaskh16FontFamily);
   renderer.insertFont(UI_10_FONT_ID, ui10FontFamily);
   renderer.insertFont(UI_12_FONT_ID, ui12FontFamily);
   renderer.insertFont(SMALL_FONT_ID, smallFontFamily);
