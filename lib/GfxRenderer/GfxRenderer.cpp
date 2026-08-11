@@ -1119,16 +1119,43 @@ void GfxRenderer::drawText(const int fontId, const int x, const int y, const cha
   uint32_t cp;
   uint32_t prevCp = 0;
   bool prevScaledSmallCap = false;
+  // Mark-stacking state for the current base glyph: ceiling grows as
+  // above-marks stack (shadda + fatha), floor sinks as below-marks stack.
+  int markStackBaseX = INT32_MIN;
+  int markStackBaseTop = 0;
+  int markCeiling = 0;
+  int markFloor = INT32_MIN;
   while ((cp = utf8NextCodepoint(reinterpret_cast<const uint8_t**>(&textCursor)))) {
     if (utf8IsCombiningMark(cp) || BidiUtils::isTransparentMark(cp)) {
       const EpdGlyph* combiningGlyph = font.getGlyph(cp, style);
       if (!combiningGlyph) continue;
       const auto anchor = combiningMark::anchorFor(cp);
-      const int raiseBy =
-          combiningMark::raiseAboveBase(anchor, combiningGlyph->top, combiningGlyph->height, lastBaseTop);
+      if (lastBaseX != markStackBaseX || lastBaseTop != markStackBaseTop) {
+        markStackBaseX = lastBaseX;
+        markStackBaseTop = lastBaseTop;
+        markCeiling = lastBaseTop;
+        markFloor = INT32_MIN;
+      }
+      int adjust = 0;
+      if (combiningMark::markSitsAboveBaseline(combiningGlyph->top, combiningGlyph->height)) {
+        // Hug the ceiling (base top or the previous stacked mark): raises
+        // clear of tall bases, lowers toward short ones, and stacks
+        // shadda+haraka instead of overprinting them.
+        adjust = combiningMark::snugAboveCeiling(anchor, combiningGlyph->top, combiningGlyph->height, markCeiling);
+        if (anchor == combiningMark::Anchor::CenterRaised) {
+          markCeiling = combiningGlyph->top + adjust;
+        }
+      } else if (anchor == combiningMark::Anchor::CenterRaised) {
+        // Below-baseline marks (kasra family): first keeps its font-native
+        // depth, later ones stack downward.
+        if (markFloor != INT32_MIN) {
+          adjust = markFloor - combiningMark::MIN_GAP_PX - combiningGlyph->top;
+        }
+        markFloor = combiningGlyph->top + adjust - combiningGlyph->height;
+      }
       const int combiningX = combiningMark::anchorOver(anchor, lastBaseX, lastBaseLeft, lastBaseWidth,
                                                        combiningGlyph->left, combiningGlyph->width);
-      renderCharImpl<TextRotation::None>(*this, renderMode, font, cp, combiningX, yPos - raiseBy, black, style);
+      renderCharImpl<TextRotation::None>(*this, renderMode, font, cp, combiningX, yPos - adjust, black, style);
       continue;
     }
 

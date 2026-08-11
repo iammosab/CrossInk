@@ -106,6 +106,22 @@ constexpr int raiseAboveBase(const Anchor anchor, const int markTop, const int m
   return (gap < MIN_GAP_PX) ? (MIN_GAP_PX - gap) : 0;
 }
 
+/// Signed vertical adjustment that makes an above-baseline mark HUG its
+/// ceiling (the base glyph's top, or the previous mark stacked over the same
+/// base): positive raises the mark clear of a tall ceiling, negative lowers a
+/// font-native mark down toward a short base so harakat follow letter heights
+/// the way set Arabic type does.  Returns 0 for below-baseline marks and
+/// native-height anchors.
+constexpr int snugAboveCeiling(const Anchor anchor, const int markTop, const int markHeight, const int ceilingTop) {
+  if (anchor != Anchor::CenterRaised) return 0;
+  if (markTop - markHeight <= 0) return 0;
+  return MIN_GAP_PX - (markTop - markHeight - ceilingTop);
+}
+
+/// True when the mark's bitmap sits entirely above the baseline (harakat like
+/// fatha/damma/shadda), i.e. it participates in above-base stacking.
+constexpr bool markSitsAboveBaseline(const int markTop, const int markHeight) { return markTop - markHeight > 0; }
+
 }  // namespace combiningMark
 
 /// GCC/Clang (the ESP32 firmware toolchain) pack structs with __attribute__((packed)).
