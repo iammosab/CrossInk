@@ -176,6 +176,32 @@ bool arabicJoinsForward(const uint32_t cp) {
   }
 }
 
+// Byte offset of the best kashida (tatweel) insertion point in a word, or 0
+// when the word is not stretchable. Classical practice stretches the LAST
+// joined letter pair, so the scan keeps the final seam whose left letter
+// connects forward. The offset points at the following base letter, i.e.
+// after any harakat riding the previous letter, so marks stay attached.
+size_t kashidaJointByteOffset(const std::string& w) {
+  const auto* p = reinterpret_cast<const uint8_t*>(w.c_str());
+  const uint8_t* base = p;
+  size_t joint = 0;
+  uint32_t prevBase = 0;
+  uint32_t cp;
+  const uint8_t* cpStart = p;
+  while ((cp = utf8NextCodepoint(&p))) {
+    const bool isMark = (cp >= 0x064B && cp <= 0x0652) || cp == 0x0670;
+    if (!isMark) {
+      if (prevBase != 0 && cp != 0x0640 && isArabicScriptLetter(cp) && arabicJoinsForward(prevBase) &&
+          !(prevBase >= 0x064B && prevBase <= 0x0652)) {
+        joint = static_cast<size_t>(cpStart - base);
+      }
+      prevBase = cp;
+    }
+    cpStart = p;
+  }
+  return joint;
+}
+
 bool containsCjkBreakableCodepoint(const std::string& text) {
   const auto* ptr = reinterpret_cast<const unsigned char*>(text.c_str());
   while (*ptr) {
@@ -1708,8 +1734,55 @@ bool ParsedText::extractLine(Arena& scratchArena, const size_t breakIndex, const
       }
     }
 
-    const int reorderedSpare =
+    int reorderedSpare =
         effectivePageWidth - extraStartOffset - extraEndOffset - reorderedWordWidthSum - reorderedNaturalGaps;
+
+    // KASHIDA JUSTIFICATION: before widening inter-word gaps, absorb slack by
+    // elongating the connecting stroke (tatweel U+0640) inside stretchable
+    // Arabic words — how set Arabic type is justified. The tatweel joins on
+    // both sides, so shaping keeps the word connected and the elongation is
+    // exactly the tatweel's advance. The elongated text is materialized into
+    // the word string, so serialization, rendering, and selection all see it
+    // with no extra bookkeeping (dictionary lookups strip tatweel).
+    if (effectiveAlignment == CssTextAlign::Justify && !isLastLine && blockStyle.isRtl && reorderedSpare > 0 &&
+        reorderedGapCount > 0) {
+      // Gaps may grow up to ~2/3 of a space before elongation kicks in; the
+      // remainder after elongation stays below that visual threshold.
+      const int spaceAdv = renderer.getSpaceAdvance(fontId, 0, 0, EpdFontFamily::REGULAR);
+      const int maxCleanExtraPerGap = std::max(2, spaceAdv * 2 / 3);
+      if (reorderedSpare / static_cast<int>(reorderedGapCount) > maxCleanExtraPerGap) {
+        constexpr int kMaxKashidaPerWord = 3;
+        int tatweelAdvCache[4] = {-1, -1, -1, -1};
+        const auto tatweelAdv = [&](const EpdFontFamily::Style style) {
+          const int slot = static_cast<int>(style) & 0x03;
+          if (tatweelAdvCache[slot] < 0) {
+            tatweelAdvCache[slot] = renderer.getTextAdvanceX(fontId, "\xD9\x80", style);
+          }
+          return tatweelAdvCache[slot];
+        };
+        bool assignedAny = true;
+        int perWordCount[64] = {};
+        const size_t wordLimit = std::min<size_t>(reorderedWidthsScratch.size(), 64);
+        while (assignedAny && reorderedSpare / static_cast<int>(reorderedGapCount) > maxCleanExtraPerGap) {
+          assignedAny = false;
+          for (size_t wi = 0; wi < wordLimit; ++wi) {
+            if (perWordCount[wi] >= kMaxKashidaPerWord) continue;
+            const size_t joint = kashidaJointByteOffset(reorderedWordsScratch[wi]);
+            if (joint == 0) continue;
+            const int adv = tatweelAdv(reorderedStylesScratch[wi]);
+            if (adv <= 0 || adv > reorderedSpare) continue;
+            reorderedWordsScratch[wi].insert(joint, "\xD9\x80");
+            reorderedWidthsScratch[wi] += adv;
+            reorderedWordWidthSum += adv;
+            reorderedSpare -= adv;
+            perWordCount[wi]++;
+            assignedAny = true;
+            if (reorderedSpare / static_cast<int>(reorderedGapCount) <= maxCleanExtraPerGap) break;
+          }
+        }
+      }
+    }
+
     const int reorderedJustifyExtra = (effectiveAlignment == CssTextAlign::Justify && !isLastLine)
                                           ? computeJustifyExtra(reorderedSpare, reorderedGapCount)
                                           : 0;
