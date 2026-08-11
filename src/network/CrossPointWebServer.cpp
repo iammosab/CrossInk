@@ -1316,6 +1316,7 @@ void CrossPointWebServer::handleGetSettings() const {
         if (s.nameId == StrId::STR_FONT_FAMILY && !fontFamilies.empty()) {
           options.add(I18N.get(StrId::STR_LEXEND_DECA));
           options.add(I18N.get(StrId::STR_BITTER));
+          options.add(I18N.get(StrId::STR_NOTONASKH));
           for (const auto& family : fontFamilies) {
             options.add(family.name);
           }

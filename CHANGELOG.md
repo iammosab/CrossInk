@@ -19,6 +19,7 @@
 
 ### Fixed
 
+- The Reading-font row in Settings (and the web portal's font dropdown) showed the wrong font — the neighbor of the selected one — after Noto Naskh joined the built-in fonts, because their option lists still counted two built-ins while values counted three.
 - Arabic translation overhaul: added the 104 strings that were missing and silently falling back to English (dictionary, nearby transfer, frontlight, date format, indexing, and more), and repaired dozens of machine-translation errors — including day abbreviations rendered as unrelated words (Wed as "got married", Sat as "sat down", Sun as "the sun"), "streak" translated as "font/line", "position" as "stance", and stray English fragments and zero-width characters.
 
 - Simulator builds work again: the simulator dependency now points to a fork carrying the `HalFile::allocationFailed()` API added to the firmware HAL in v1.5.0.
