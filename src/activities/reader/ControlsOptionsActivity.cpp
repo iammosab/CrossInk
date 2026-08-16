@@ -62,7 +62,9 @@ void ControlsOptionsActivity::rebuildSettingsList() {
   frontButtonSettings.clear();
   sideButtonSettings.clear();
 
-  const auto allSettings = getSettingsList();
+  // Controls category only: this menu also opens from the reader, where a full
+  // settings-list copy under heap pressure has aborted on bad_alloc.
+  const auto allSettings = getSettingsList(nullptr, nullptr, StrId::STR_CAT_CONTROLS);
   settings = buildControlsSettingsParentList(allSettings);
   powerSettings = buildControlsPowerSettingsList(allSettings);
 #if CROSSINK_APP_CAP_TOUCH

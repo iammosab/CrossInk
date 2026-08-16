@@ -101,7 +101,9 @@ void ReaderOptionsActivity::rebuildSettingsList() {
   fontSettings.clear();
   pageLayoutSettings.clear();
   sdFontSystem.refreshIfDirty();
-  const auto allSettings = getSettingsList(&sdFontSystem.registry());
+  // Reader category only: a full settings-list copy under reader heap pressure
+  // has aborted on bad_alloc (all lists this menu builds are CAT_READER).
+  const auto allSettings = getSettingsList(&sdFontSystem.registry(), nullptr, StrId::STR_CAT_READER);
   settings = buildBookReaderSettingsParentList(allSettings);
   const auto indexingMethod = std::find_if(settings.begin(), settings.end(), [](const SettingInfo& setting) {
     return setting.nameId == StrId::STR_INDEXING_METHOD;

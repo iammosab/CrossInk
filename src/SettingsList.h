@@ -140,33 +140,41 @@ inline uint8_t closestBuiltinFontSizeIndex(const uint8_t targetPointSize) {
 
 // Build the font family setting dynamically. When registry is non-null, SD card fonts
 // are appended after the built-in fonts. Otherwise only built-in fonts are listed.
+// One immutable snapshot of the SD font families, shared by the display labels
+// and both lambdas below. The reader options menu builds this list under heavy
+// heap pressure; duplicating these vectors per lambda capture (as separate
+// by-value copies) has aborted on bad_alloc there.
+struct SdFamilySnapshot {
+  std::vector<std::string> names;
+  std::vector<std::vector<uint8_t>> sizes;
+};
+
 inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
   // Built-in font labels (StrId)
   std::vector<StrId> enumValues = {StrId::STR_LEXEND_DECA, StrId::STR_BITTER, StrId::STR_NOTONASKH};
-  // Runtime string labels for SD card fonts
-  std::vector<std::string> enumStringValues;
 
-  // Reserve: first CrossPointSettings::BUILTIN_FONT_COUNT entries use StrId, rest use strings
+  auto snapshot = std::make_shared<SdFamilySnapshot>();
   if (registry) {
     const auto& families = registry->getFamilies();
-    enumStringValues.reserve(families.size());
-    std::transform(families.begin(), families.end(), std::back_inserter(enumStringValues),
-                   [](const SdCardFontFamilyInfo& f) { return f.name; });
+    snapshot->names.reserve(families.size());
+    snapshot->sizes.reserve(families.size());
+    for (const auto& family : families) {
+      snapshot->names.push_back(family.name);
+      snapshot->sizes.push_back(family.availableSizes());
+    }
   }
-
-  // Capture the SD font count for the lambdas
-  const int sdFontCount = static_cast<int>(enumStringValues.size());
 
   // Total option count = built-in + SD card families
   // For the combined enumStringValues: we need all entries as strings (built-in names + SD names)
   // The render code checks enumStringValues first, then enumValues. So we build enumStringValues
   // with all options when SD fonts are present.
   std::vector<std::string> allStringValues;
-  if (sdFontCount > 0) {
+  if (!snapshot->names.empty()) {
+    allStringValues.reserve(CrossPointSettings::BUILTIN_FONT_COUNT + snapshot->names.size());
     allStringValues.push_back(I18N.get(StrId::STR_LEXEND_DECA));
     allStringValues.push_back(I18N.get(StrId::STR_BITTER));
     allStringValues.push_back(I18N.get(StrId::STR_NOTONASKH));
-    allStringValues.insert(allStringValues.end(), enumStringValues.begin(), enumStringValues.end());
+    allStringValues.insert(allStringValues.end(), snapshot->names.begin(), snapshot->names.end());
   }
 
   SettingInfo s;
@@ -177,24 +185,11 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
   s.key = "fontFamily";
   s.category = StrId::STR_CAT_READER;
 
-  // Capture registry families by copy for the lambdas
-  std::vector<std::string> sdFamilyNames;
-  std::vector<std::vector<uint8_t>> sdFamilySizes;
-  if (registry) {
-    const auto& families = registry->getFamilies();
-    sdFamilyNames.reserve(families.size());
-    sdFamilySizes.reserve(families.size());
-    std::transform(families.begin(), families.end(), std::back_inserter(sdFamilyNames),
-                   [](const SdCardFontFamilyInfo& f) { return f.name; });
-    std::transform(families.begin(), families.end(), std::back_inserter(sdFamilySizes),
-                   [](const SdCardFontFamilyInfo& f) { return f.availableSizes(); });
-  }
-
-  s.valueGetter = [sdFamilyNames]() -> uint8_t {
+  s.valueGetter = [snapshot]() -> uint8_t {
     // If an SD card font is selected, find its index
     if (SETTINGS.sdFontFamilyName[0] != '\0') {
-      for (int i = 0; i < static_cast<int>(sdFamilyNames.size()); i++) {
-        if (sdFamilyNames[i] == SETTINGS.sdFontFamilyName) {
+      for (int i = 0; i < static_cast<int>(snapshot->names.size()); i++) {
+        if (snapshot->names[i] == SETTINGS.sdFontFamilyName) {
           return static_cast<uint8_t>(CrossPointSettings::BUILTIN_FONT_COUNT + i);
         }
       }
@@ -203,7 +198,7 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
     return SETTINGS.fontFamily < CrossPointSettings::BUILTIN_FONT_COUNT ? SETTINGS.fontFamily : 0;
   };
 
-  s.valueSetter = [sdFamilyNames, sdFamilySizes](uint8_t v) {
+  s.valueSetter = [snapshot](uint8_t v) {
     const uint8_t targetPointSize = SETTINGS.readerFontPointSize;
 
     if (v < CrossPointSettings::BUILTIN_FONT_COUNT) {
@@ -213,10 +208,10 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
           static_cast<CrossPointSettings::FONT_SIZE>(closestBuiltinFontSizeIndex(targetPointSize)));
     } else {
       int sdIdx = v - CrossPointSettings::BUILTIN_FONT_COUNT;
-      if (sdIdx < static_cast<int>(sdFamilyNames.size())) {
-        SETTINGS.readerFontPointSize =
-            sdFamilySizes[sdIdx][closestPointSizeIndex(sdFamilySizes[sdIdx], targetPointSize)];
-        strncpy(SETTINGS.sdFontFamilyName, sdFamilyNames[sdIdx].c_str(), sizeof(SETTINGS.sdFontFamilyName) - 1);
+      if (sdIdx < static_cast<int>(snapshot->names.size())) {
+        const auto& sizes = snapshot->sizes[sdIdx];
+        SETTINGS.readerFontPointSize = sizes[closestPointSizeIndex(sizes, targetPointSize)];
+        strncpy(SETTINGS.sdFontFamilyName, snapshot->names[sdIdx].c_str(), sizeof(SETTINGS.sdFontFamilyName) - 1);
         SETTINGS.sdFontFamilyName[sizeof(SETTINGS.sdFontFamilyName) - 1] = '\0';
       }
     }
@@ -233,30 +228,31 @@ inline SettingInfo buildDictionaryFontFamilySetting(const SdCardFontRegistry* re
   s.category = StrId::STR_CAT_READER;
   s.enumStringValues.push_back(I18N.get(StrId::STR_USE_READER_FONT));
 
-  std::vector<std::string> familyNames;
+  // Shared between both lambdas: one copy of the family names, not one per capture.
+  auto familyNames = std::make_shared<std::vector<std::string>>();
   if (registry) {
     const auto& families = registry->getFamilies();
-    familyNames.reserve(families.size());
+    familyNames->reserve(families.size());
     s.enumStringValues.reserve(families.size() + 1);
     for (const auto& family : families) {
-      familyNames.push_back(family.name);
+      familyNames->push_back(family.name);
       s.enumStringValues.push_back(family.name);
     }
   }
 
   s.valueGetter = [familyNames]() -> uint8_t {
-    for (size_t i = 0; i < familyNames.size(); ++i) {
-      if (familyNames[i] == SETTINGS.dictionarySdFontFamilyName) return static_cast<uint8_t>(i + 1);
+    for (size_t i = 0; i < familyNames->size(); ++i) {
+      if ((*familyNames)[i] == SETTINGS.dictionarySdFontFamilyName) return static_cast<uint8_t>(i + 1);
     }
     return 0;
   };
   s.valueSetter = [familyNames](const uint8_t value) {
-    if (value == 0 || value > familyNames.size()) {
+    if (value == 0 || value > familyNames->size()) {
       SETTINGS.dictionarySdFontFamilyName[0] = '\0';
       SETTINGS.dictionaryFontPointSize = 0;
       return;
     }
-    strncpy(SETTINGS.dictionarySdFontFamilyName, familyNames[value - 1].c_str(),
+    strncpy(SETTINGS.dictionarySdFontFamilyName, (*familyNames)[value - 1].c_str(),
             sizeof(SETTINGS.dictionarySdFontFamilyName) - 1);
     SETTINGS.dictionarySdFontFamilyName[sizeof(SETTINGS.dictionarySdFontFamilyName) - 1] = '\0';
   };
@@ -301,11 +297,12 @@ inline SettingInfo buildDictionarySetting(const DictionaryRegistry* dictRegistry
   s.category = StrId::STR_CAT_READER;
   s.enumStringValues.push_back(I18N.get(StrId::STR_DICT_NONE));
 
-  std::vector<DictionaryEntry> entries;
+  // Shared between both lambdas: one copy of the entries, not one per capture.
+  auto entries = std::make_shared<std::vector<DictionaryEntry>>();
   if (dictRegistry) {
-    entries = dictRegistry->getEntries();
-    s.enumStringValues.reserve(entries.size() + 1);
-    for (const auto& entry : entries) {
+    *entries = dictRegistry->getEntries();
+    s.enumStringValues.reserve(entries->size() + 1);
+    for (const auto& entry : *entries) {
       s.enumStringValues.push_back(entry.name);
     }
   }
@@ -315,8 +312,8 @@ inline SettingInfo buildDictionarySetting(const DictionaryRegistry* dictRegistry
     if (activePath.empty()) {
       return 0;
     }
-    for (size_t i = 0; i < entries.size(); i++) {
-      if (entries[i].basePath == activePath) {
+    for (size_t i = 0; i < entries->size(); i++) {
+      if ((*entries)[i].basePath == activePath) {
         return static_cast<uint8_t>(i + 1);
       }
     }
@@ -329,8 +326,8 @@ inline SettingInfo buildDictionarySetting(const DictionaryRegistry* dictRegistry
       return;
     }
     const size_t entryIndex = static_cast<size_t>(v - 1);
-    if (entryIndex < entries.size()) {
-      Dictionary::saveGlobalDictPath(entries[entryIndex].basePath.c_str());
+    if (entryIndex < entries->size()) {
+      Dictionary::saveGlobalDictPath((*entries)[entryIndex].basePath.c_str());
     }
   };
 
@@ -873,8 +870,25 @@ inline const std::vector<SettingInfo>& getBaseSettingsList() {
 }
 
 inline std::vector<SettingInfo> getSettingsList(const SdCardFontRegistry* registry = nullptr,
-                                                const DictionaryRegistry* dictRegistry = nullptr) {
-  std::vector<SettingInfo> v = getBaseSettingsList();
+                                                const DictionaryRegistry* dictRegistry = nullptr,
+                                                const StrId categoryFilter = StrId::_COUNT) {
+  // Copying a SettingInfo duplicates its label vectors and std::function
+  // captures, so a full copy of the base list costs hundreds of small heap
+  // allocations. Reader-context menus open with a book holding most of the
+  // heap and have aborted on bad_alloc here; they pass their category so only
+  // those entries are copied.
+  std::vector<SettingInfo> v;
+  if (categoryFilter != StrId::_COUNT) {
+    const auto& base = getBaseSettingsList();
+    v.reserve(24);
+    for (const auto& s : base) {
+      if (s.category == categoryFilter) {
+        v.push_back(s);
+      }
+    }
+  } else {
+    v = getBaseSettingsList();
+  }
   const bool hasTouch = gpio.hasTouch();
   if (!hasTouch) {
     v.erase(std::remove_if(v.begin(), v.end(),

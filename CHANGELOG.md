@@ -19,6 +19,7 @@
 
 ### Fixed
 
+- Opening the book options menu while reading a heavy book could crash the device (abort on out-of-memory). The menu was building the entire settings list — every category, with several duplicate copies of the SD font family names — inside the reader's already-tight heap. It now copies only the reader-category entries and shares one copy of the font metadata, so the menu opens reliably even with many SD fonts installed.
 - The Reading-font row in Settings (and the web portal's font dropdown) showed the wrong font — the neighbor of the selected one — after Noto Naskh joined the built-in fonts, because their option lists still counted two built-ins while values counted three.
 - Arabic translation overhaul: added the 104 strings that were missing and silently falling back to English (dictionary, nearby transfer, frontlight, date format, indexing, and more), and repaired dozens of machine-translation errors — including day abbreviations rendered as unrelated words (Wed as "got married", Sat as "sat down", Sun as "the sun"), "streak" translated as "font/line", "position" as "stance", and stray English fragments and zero-width characters.
 
